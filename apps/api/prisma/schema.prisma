@@ -1,0 +1,273 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String   @id @default(cuid())
+  email           String   @unique
+  passwordHash    String   @map("password_hash")
+  role            UserRole
+  status          UserStatus @default(PENDING)
+  twoFaSecret     String?  @map("two_fa_secret")
+  twoFaEnabled    Boolean  @default(false) @map("two_fa_enabled")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  repProfile      RepProfile?
+  clientProfile   ClientProfile?
+  notifications   Notification[]
+  auditLog        AuditLog[]
+
+  @@map("users")
+}
+
+model RepProfile {
+  id                  String    @id @default(cuid())
+  userId              String    @unique @map("user_id")
+  linkedinUrl         String    @map("linkedin_url")
+  linkedinFollowers   Int       @default(0) @map("linkedin_followers")
+  industry            String?
+  locationCountry     String?   @map("location_country")
+  locationCity        String?   @map("location_city")
+  bio                 String?
+  idVerified          Boolean   @default(false) @map("id_verified")
+  idVerifiedAt        DateTime? @map("id_verified_at")
+  idDocumentUrl       String?   @map("id_document_url")
+  twoFaConfirmed      Boolean   @default(false) @map("two_fa_confirmed")
+  gologinProfileId    String?   @map("gologin_profile_id")
+  bitbrowserId        String?   @map("bitbrowser_id")
+  availabilityStatus  String    @default("available") @map("availability_status")
+  maxClients          Int       @default(3) @map("max_clients")
+  hourlyRateUsd       Decimal?  @map("hourly_rate_usd") @db.Decimal(8, 2)
+  rating              Decimal   @default(0.00) @db.Decimal(3, 2)
+  totalReviews        Int       @default(0) @map("total_reviews")
+  createdAt           DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  user                User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaigns           Campaign[]
+  browserSessions     BrowserSession[]
+  earnings            RepEarning[]
+
+  @@map("rep_profiles")
+}
+
+model ClientProfile {
+  id              String  @id @default(cuid())
+  userId          String  @unique @map("user_id")
+  companyName     String? @map("company_name")
+  website         String?
+  industry        String?
+  targetMarket    String? @map("target_market")
+  billingEmail    String? @map("billing_email")
+  plan            Plan    @default(STARTER)
+  planStatus      String  @default("inactive") @map("plan_status")
+  payfastToken    String? @map("payfast_token")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaigns       Campaign[]
+  subscriptions   Subscription[]
+  earnings        RepEarning[]
+
+  @@map("client_profiles")
+}
+
+model Campaign {
+  id                String              @id @default(cuid())
+  clientId          String              @map("client_id")
+  repId             String?             @map("rep_id")
+  name              String
+  status            CampaignStatus      @default(DRAFT)
+  type              CampaignType
+  targetIcp         Json?               @map("target_icp")
+  messageTemplates  Json?               @map("message_templates")
+  dailyLimit        Int                 @default(40) @map("daily_limit")
+  startDate         DateTime?           @map("start_date")
+  endDate           DateTime?           @map("end_date")
+  notes             String?
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+
+  // Relations
+  client            ClientProfile       @relation(fields: [clientId], references: [id])
+  rep               RepProfile?         @relation(fields: [repId], references: [id])
+  activities        CampaignActivity[]
+  browserSessions   BrowserSession[]
+  earnings          RepEarning[]
+
+  @@map("campaigns")
+}
+
+model CampaignActivity {
+  id            String              @id @default(cuid())
+  campaignId    String              @map("campaign_id")
+  activityType  ActivityType        @map("activity_type")
+  prospectName  String?             @map("prospect_name")
+  prospectUrl  String?             @map("prospect_url")
+  notes         String?
+  occurredAt    DateTime            @default(now()) @map("occurred_at")
+
+  // Relations
+  campaign      Campaign            @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@map("campaign_activities")
+}
+
+model BrowserSession {
+  id                  String              @id @default(cuid())
+  repId               String              @map("rep_id")
+  campaignId          String?             @map("campaign_id")
+  provider            BrowserProvider
+  externalProfileId  String?             @map("external_profile_id")
+  status              SessionStatus       @default(IDLE)
+  lastActiveAt        DateTime?           @map("last_active_at")
+  sessionMeta         Json?               @map("session_meta")
+  createdAt           DateTime            @default(now()) @map("created_at")
+
+  // Relations
+  rep                 RepProfile          @relation(fields: [repId], references: [id])
+  campaign            Campaign?           @relation(fields: [campaignId], references: [id])
+
+  @@map("browser_sessions")
+}
+
+model Subscription {
+  id                  String    @id @default(cuid())
+  clientId            String    @map("client_id")
+  plan                Plan
+  amountUsd           Decimal   @map("amount_usd") @db.Decimal(8, 2)
+  status              String    @default("active")
+  payfastPaymentId    String?   @map("payfast_payment_id")
+  billingCycleStart   DateTime? @map("billing_cycle_start")
+  billingCycleEnd     DateTime? @map("billing_cycle_end")
+  nextBillingDate     DateTime? @map("next_billing_date")
+  createdAt           DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  client              ClientProfile @relation(fields: [clientId], references: [id])
+
+  @@map("subscriptions")
+}
+
+model RepEarning {
+  id            String    @id @default(cuid())
+  repId         String    @map("rep_id")
+  campaignId    String    @map("campaign_id")
+  clientId      String    @map("client_id")
+  amountUsd     Decimal   @map("amount_usd") @db.Decimal(8, 2)
+  periodStart   DateTime  @map("period_start")
+  periodEnd     DateTime  @map("period_end")
+  status        String    @default("pending")
+  paidAt        DateTime? @map("paid_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  rep           RepProfile   @relation(fields: [repId], references: [id])
+  campaign      Campaign     @relation(fields: [campaignId], references: [id])
+  client        ClientProfile @relation(fields: [clientId], references: [id])
+
+  @@map("rep_earnings")
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  type        String
+  title       String
+  body        String
+  read        Boolean  @default(false)
+  actionUrl   String?  @map("action_url")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorId     String?  @map("actor_id")
+  action      String
+  entityType  String?  @map("entity_type")
+  entityId    String?  @map("entity_id")
+  metadata    Json?
+  ipAddress   String?  @map("ip_address")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  actor       User?    @relation(fields: [actorId], references: [id])
+
+  @@map("audit_log")
+}
+
+// Enums
+enum UserRole {
+  CLIENT
+  REP
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+enum Plan {
+  STARTER
+  PRO
+  MANAGED
+}
+
+enum CampaignStatus {
+  DRAFT
+  PENDING_MATCH
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum CampaignType {
+  CONNECTIONS
+  DMS
+  POSTS
+  MIXED
+}
+
+enum ActivityType {
+  CONNECTION_SENT
+  CONNECTION_ACCEPTED
+  DM_SENT
+  DM_REPLIED
+  POST_PUBLISHED
+  MEETING_BOOKED
+  ERROR
+}
+
+enum BrowserProvider {
+  GOLOGIN
+  BITBROWSER
+}
+
+enum SessionStatus {
+  IDLE
+  LAUNCHING
+  ACTIVE
+  CLOSED
+  ERROR
+}

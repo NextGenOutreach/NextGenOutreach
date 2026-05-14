@@ -1,4 +1,4 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+This is a [Next.js](https://nextjs.org) project for NextGenOutreach marketing pages and lead capture.
 
 ## Getting Started
 
@@ -16,9 +16,22 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Google Sheets Contact Integration
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The `/contact` page submits to Google Sheets through a Google Apps Script webhook.
+
+1. Copy `.env.example` to `.env.local`.
+2. Set `GOOGLE_SHEETS_WEBHOOK_URL` to your deployed Apps Script Web App URL.
+3. Ensure your Apps Script accepts JSON `POST` requests and appends:
+   - `fullName`
+   - `email`
+   - `contactType`
+   - `message`
+   - `submittedAt`
+
+If the webhook URL is not configured, the app falls back to local success mode and logs the submission server-side.
+
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to optimize Geist fonts.
 
 ## Learn More
 
