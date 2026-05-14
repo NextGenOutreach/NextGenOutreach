@@ -12,5 +12,6 @@ router.post('/login',           validate(loginSchema),     ctrl.login);
 router.post('/refresh',         requireRefreshAuth,        ctrl.refresh);
 router.post('/logout',          requireAuth,               ctrl.logout);
 router.get('/me',               requireAuth,               ctrl.me);
+router.post('/sync-claims',                                ctrl.syncClaims);
 
 export { router as authRoutes };

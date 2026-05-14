@@ -130,24 +130,18 @@ export default function RepTasksPage() {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500';
-      case 'in_progress': return 'bg-blue-500/20 text-blue-400 border-blue-500';
-      case 'completed': return 'bg-green-500/20 text-green-400 border-green-500';
-      case 'skipped': return 'bg-gray-500/20 text-gray-400 border-gray-500';
-      case 'failed': return 'bg-red-500/20 text-red-400 border-red-500';
-      default: return 'bg-gray-500/20 text-gray-400 border-gray-500';
-    }
+  const STATUS_STYLE: Record<string, { color: string; label: string }> = {
+    pending:     { color: 'var(--accent-3)', label: 'Pending' },
+    in_progress: { color: 'var(--accent-2)', label: 'In Progress' },
+    completed:   { color: 'var(--accent-4)', label: 'Done' },
+    skipped:     { color: 'rgba(255,255,255,0.3)', label: 'Skipped' },
+    failed:      { color: 'var(--accent-1)', label: 'Failed' },
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return 'bg-red-500/20 text-red-400';
-      case 'medium': return 'bg-yellow-500/20 text-yellow-400';
-      case 'low': return 'bg-green-500/20 text-green-400';
-      default: return 'bg-gray-500/20 text-gray-400';
-    }
+  const PRIORITY_STYLE: Record<string, { color: string }> = {
+    high:   { color: 'var(--accent-1)' },
+    medium: { color: 'var(--accent-3)' },
+    low:    { color: 'var(--accent-2)' },
   };
 
   const handleStartTask = (taskId: string) => {
@@ -164,177 +158,126 @@ export default function RepTasksPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="animate-pulse">
-            <div className="h-8 bg-muted rounded w-1/4 mb-8"></div>
-            <div className="grid grid-cols-1 gap-6">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="bg-muted rounded-lg p-6">
-                  <div className="h-4 bg-muted rounded w-1/3 mb-4"></div>
-                  <div className="h-3 bg-muted rounded w-1/2 mb-2"></div>
-                  <div className="h-3 bg-muted rounded w-1/4"></div>
-                </div>
-              ))}
-            </div>
+      <div className="min-h-screen bg-background p-6 md:p-10">
+        <div className="max-w-4xl mx-auto animate-pulse space-y-4">
+          <div className="h-8 bg-white/5 rounded-xl w-1/3" />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => <div key={i} className="h-24 bg-white/5 rounded-2xl" />)}
           </div>
+          {[...Array(3)].map((_, i) => <div key={i} className="h-28 bg-white/5 rounded-2xl" />)}
         </div>
       </div>
     );
   }
 
+  const today = new Date().toISOString().split('T')[0];
+  const timeLeft = filteredTasks.filter(t => t.status !== 'completed').reduce((acc, t) => acc + parseInt(t.estimatedTime), 0);
+
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
+    <div className="min-h-screen bg-background p-6 md:p-10">
+      <div className="max-w-4xl mx-auto">
+
+        <div className="flex items-start justify-between gap-4 mb-8 flex-wrap">
           <div>
-            <h1 className="text-3xl font-bold text-white">Tasks</h1>
-            <p className="text-muted-foreground">Manage your daily outreach activities</p>
+            <h1 className="text-3xl font-black uppercase tracking-tight text-white">Tasks</h1>
+            <p className="text-white/40 font-bold mt-1">Your daily outreach mission brief.</p>
           </div>
-          <button className="px-6 py-3 bg-accent-1 text-white rounded-lg hover:bg-accent-2 transition-colors">
-            Launch Browser
+          <button className="text-xs font-black uppercase tracking-wide px-4 py-2 rounded-full border-2 border-accent-1 text-accent-1 hover:bg-accent-1/10 transition-colors">
+            🖥 Launch Browser
           </button>
         </div>
 
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-card rounded-lg p-6 border border-accent-3/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Today's Tasks</p>
-                <p className="text-2xl font-bold text-white">
-                  {tasks.filter(t => t.dueDate === new Date().toISOString().split('T')[0]).length}
-                </p>
-              </div>
-              <div className="text-3xl">📋</div>
+        {/* Stats */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {[
+            { label: "Today's tasks",  value: tasks.filter(t => t.dueDate === today).length,       color: 'var(--accent-1)' },
+            { label: 'In progress',     value: tasks.filter(t => t.status === 'in_progress').length, color: 'var(--accent-2)' },
+            { label: 'Completed',       value: tasks.filter(t => t.status === 'completed').length,   color: 'var(--accent-4)' },
+            { label: 'Est. time left',  value: `${timeLeft} min`,                                    color: 'var(--accent-3)' },
+          ].map((s) => (
+            <div key={s.label} className="bg-white/[0.04] border border-white/10 rounded-2xl p-5">
+              <p className="text-[11px] font-black uppercase tracking-widest text-white/40 mb-2">{s.label}</p>
+              <p className="text-3xl font-black" style={{ color: s.color }}>{s.value}</p>
             </div>
-          </div>
-          <div className="bg-card rounded-lg p-6 border border-accent-3/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">In Progress</p>
-                <p className="text-2xl font-bold text-blue-400">
-                  {tasks.filter(t => t.status === 'in_progress').length}
-                </p>
-              </div>
-              <div className="text-3xl">⚡</div>
-            </div>
-          </div>
-          <div className="bg-card rounded-lg p-6 border border-accent-3/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Completed Today</p>
-                <p className="text-2xl font-bold text-green-400">
-                  {tasks.filter(t => t.status === 'completed').length}
-                </p>
-              </div>
-              <div className="text-3xl">✅</div>
-            </div>
-          </div>
-          <div className="bg-card rounded-lg p-6 border border-accent-3/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Est. Time Left</p>
-                <p className="text-2xl font-bold text-yellow-400">
-                  {filteredTasks.reduce((acc, task) => {
-                    const time = parseInt(task.estimatedTime);
-                    return acc + time;
-                  }, 0)} min
-                </p>
-              </div>
-              <div className="text-3xl">⏱️</div>
-            </div>
-          </div>
+          ))}
         </div>
 
-        {/* Filter Tabs */}
-        <div className="flex gap-2 mb-8">
-          {(['all', 'today', 'upcoming', 'overdue'] as const).map((status) => (
+        {/* Filter */}
+        <div className="flex gap-2 mb-6 flex-wrap">
+          {(['all', 'today', 'upcoming', 'overdue'] as const).map((f) => (
             <button
-              key={status}
-              onClick={() => setFilter(status)}
-              className={`px-4 py-2 rounded-lg capitalize transition-colors ${
-                filter === status
-                  ? 'bg-accent-1 text-white'
-                  : 'bg-muted text-muted-foreground hover:text-white'
-              }`}
+              key={f}
+              onClick={() => setFilter(f)}
+              className="px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wide border-2 transition-colors"
+              style={{
+                borderColor: filter === f ? 'var(--accent-1)' : 'rgba(255,255,255,0.1)',
+                color: filter === f ? 'var(--accent-1)' : 'rgba(255,255,255,0.4)',
+                background: filter === f ? 'rgba(255,58,242,0.08)' : 'transparent',
+              }}
             >
-              {status}
+              {f}
             </button>
           ))}
         </div>
 
-        {/* Tasks List */}
-        <div className="space-y-6">
-          {filteredTasks.map((task) => (
-            <div key={task.id} className="bg-card rounded-lg p-6 border border-accent-3/20">
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="text-2xl">{getTaskIcon(task.type)}</span>
-                    <h3 className="text-lg font-semibold text-white">{task.campaignName}</h3>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(task.status)}`}>
-                      {task.status.replace('_', ' ')}
-                    </span>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(task.priority)}`}>
-                      {task.priority} priority
-                    </span>
+        {/* Task cards */}
+        <div className="space-y-4">
+          {filteredTasks.map((task) => {
+            const ss = STATUS_STYLE[task.status] ?? STATUS_STYLE.pending;
+            const ps = PRIORITY_STYLE[task.priority] ?? PRIORITY_STYLE.medium;
+            const pct = task.prospectCount > 0 ? (task.completedCount / task.prospectCount) * 100 : 0;
+            return (
+              <div
+                key={task.id}
+                className="border rounded-2xl p-5"
+                style={{ borderColor: ss.color + '30', background: ss.color + '06' }}
+              >
+                <div className="flex items-start gap-4">
+                  <span className="text-2xl mt-0.5 shrink-0">{getTaskIcon(task.type)}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <h3 className="text-sm font-black text-white">{task.campaignName}</h3>
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full border" style={{ color: ss.color, borderColor: ss.color + '50', background: ss.color + '15' }}>
+                        {ss.label}
+                      </span>
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full" style={{ color: ps.color, background: ps.color + '15' }}>
+                        {task.priority}
+                      </span>
+                    </div>
+                    <p className="text-xs font-medium text-white/45 mb-2">
+                      {task.clientName} · Due {new Date(task.dueDate).toLocaleDateString()} · {task.completedCount}/{task.prospectCount} prospects · ⏱ {task.estimatedTime}
+                    </p>
+                    {task.notes && (
+                      <p className="text-xs italic text-white/35 mb-3">{task.notes}</p>
+                    )}
+                    <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+                      <div className="h-1.5 rounded-full transition-all duration-300" style={{ width: `${pct}%`, backgroundColor: ss.color }} />
+                    </div>
                   </div>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Client: {task.clientName} • Due: {new Date(task.dueDate).toLocaleDateString()}
-                  </p>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span>📊 {task.completedCount}/{task.prospectCount} prospects</span>
-                    <span>⏱️ {task.estimatedTime}</span>
+                  <div className="flex gap-2 shrink-0">
+                    {task.status === 'pending' && (
+                      <button onClick={() => handleStartTask(task.id)} className="text-[11px] font-black uppercase px-3 py-1.5 rounded-full border-2 border-accent-1 text-accent-1 hover:bg-accent-1/10 transition-colors">
+                        Start
+                      </button>
+                    )}
+                    {task.status === 'in_progress' && (
+                      <button onClick={() => handleCompleteTask(task.id)} className="text-[11px] font-black uppercase px-3 py-1.5 rounded-full border-2 text-accent-4 hover:opacity-80 transition-colors" style={{ borderColor: 'var(--accent-4)' }}>
+                        Done
+                      </button>
+                    )}
                   </div>
-                  {task.notes && (
-                    <p className="text-sm text-muted-foreground mt-2 italic">{task.notes}</p>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  {task.status === 'pending' && (
-                    <button 
-                      onClick={() => handleStartTask(task.id)}
-                      className="px-4 py-2 bg-accent-1 text-white rounded-lg hover:bg-accent-2 transition-colors"
-                    >
-                      Start Task
-                    </button>
-                  )}
-                  {task.status === 'in_progress' && (
-                    <button 
-                      onClick={() => handleCompleteTask(task.id)}
-                      className="px-4 py-2 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition-colors"
-                    >
-                      Complete
-                    </button>
-                  )}
-                  <button className="px-4 py-2 bg-muted text-white rounded-lg hover:bg-accent-1/20 transition-colors">
-                    View Details
-                  </button>
                 </div>
               </div>
-
-              {/* Progress Bar */}
-              <div className="w-full bg-muted rounded-full h-2">
-                <div 
-                  className="bg-accent-1 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${(task.completedCount / task.prospectCount) * 100}%` }}
-                />
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {filteredTasks.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">🎯</div>
-            <h3 className="text-xl font-semibold text-white mb-2">No tasks found</h3>
-            <p className="text-muted-foreground">
-              {filter === 'all' 
-                ? "You don't have any tasks assigned yet."
-                : `No ${filter} tasks found.`
-              }
+          <div className="text-center py-16 border-2 border-dashed border-white/10 rounded-3xl">
+            <p className="text-5xl mb-4">🎯</p>
+            <h3 className="text-lg font-black uppercase tracking-tight text-white mb-2">No tasks found</h3>
+            <p className="text-sm font-medium text-white/40">
+              {filter === 'all' ? "No tasks assigned yet." : `No ${filter} tasks.`}
             </p>
           </div>
         )}

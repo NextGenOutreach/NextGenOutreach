@@ -2,6 +2,7 @@ import { FinalCTA, Hero, MarketingNav, Section, SiteFooter } from "@/components/
 import { MaxCard } from "@/components/ui/MaxCard";
 import { FloatingDecoration, BackgroundPatterns } from "@/components/ui/Decoration";
 import { RepApplicationForm } from "@/components/RepApplicationForm";
+import { EarningsCalculator } from "./EarningsCalculator";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -68,6 +69,47 @@ export default function BecomeAgentPage() {
                 {track.body}
               </p>
             </MaxCard>
+          ))}
+        </div>
+      </Section>
+
+      <Section title="Calculate Your Earnings" intro="Slide to see what you can realistically earn based on your activity level and tier.">
+        <div className="max-w-5xl mx-auto">
+          <EarningsCalculator />
+        </div>
+      </Section>
+
+      <Section title="Common Questions" intro="Everything you need to know before applying.">
+        <div className="max-w-4xl mx-auto grid gap-4">
+          {[
+            {
+              q: "Do I need to share my LinkedIn password?",
+              a: "Never. You always operate from your own device and browser. We provide task briefs — you execute from your own account with full control.",
+            },
+            {
+              q: "What ID verification is required?",
+              a: "A valid South African government-issued ID (green barcoded ID or smart ID card). Verification takes 24–48 hours and is a once-off process. Your ID is stored encrypted and never shared with clients.",
+            },
+            {
+              q: "How and when do I get paid?",
+              a: "Payouts are processed monthly via bank transfer or PayFast. You'll receive payment on the 25th of each month for all active missions in that period.",
+            },
+            {
+              q: "Can I work for multiple clients at the same time?",
+              a: "Yes. Most reps manage 2–5 missions simultaneously once they reach Vanguard tier. Each mission is a separate client campaign, and you'll be matched based on your niche and capacity.",
+            },
+            {
+              q: "What happens if a client is unhappy with my performance?",
+              a: "We track key metrics (acceptance rate, reply rate). If performance drops below threshold, we'll work with you on messaging improvements before any action is taken. We succeed when you succeed.",
+            },
+          ].map(({ q, a }, i) => (
+            <details key={i} className="group border-2 border-white/10 hover:border-accent-3/50 rounded-2xl p-5 transition-colors cursor-pointer">
+              <summary className="text-sm font-black uppercase tracking-wide text-white list-none flex justify-between items-center gap-4">
+                {q}
+                <span className="text-accent-3 shrink-0 group-open:rotate-45 transition-transform text-xl leading-none">+</span>
+              </summary>
+              <p className="mt-4 text-sm font-medium text-white/60 leading-relaxed">{a}</p>
+            </details>
           ))}
         </div>
       </Section>

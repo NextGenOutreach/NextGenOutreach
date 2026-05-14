@@ -116,202 +116,151 @@ export default function RepEarningsPage() {
   const paidEarnings = filteredEarnings.filter(e => e.status === 'paid')
     .reduce((sum, earning) => sum + earning.amount, 0);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'paid': return 'bg-green-500/20 text-green-400 border-green-500';
-      case 'pending': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500';
-      case 'processing': return 'bg-blue-500/20 text-blue-400 border-blue-500';
-      case 'failed': return 'bg-red-500/20 text-red-400 border-red-500';
-      default: return 'bg-gray-500/20 text-gray-400 border-gray-500';
-    }
+  const STATUS_STYLE: Record<string, { color: string; label: string }> = {
+    paid:       { color: 'var(--accent-4)', label: 'Paid' },
+    pending:    { color: 'var(--accent-3)', label: 'Pending' },
+    processing: { color: 'var(--accent-2)', label: 'Processing' },
+    failed:     { color: 'var(--accent-1)', label: 'Failed' },
   };
 
-  const getPaymentMethodIcon = (method?: string) => {
-    switch (method) {
-      case 'bank_transfer': return '🏦';
-      case 'paypal': return '💳';
-      case 'crypto': return '₿';
-      default: return '💰';
-    }
+  const METHOD_ICON: Record<string, string> = {
+    bank_transfer: '🏦',
+    paypal: '💳',
+    crypto: '₿',
   };
+
+  const maxEarnings = Math.max(...monthlyStats.map(s => s.earnings), 1);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="animate-pulse">
-            <div className="h-8 bg-muted rounded w-1/4 mb-8"></div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="bg-muted rounded-lg p-6">
-                  <div className="h-4 bg-muted rounded w-1/2 mb-2"></div>
-                  <div className="h-8 bg-muted rounded w-3/4"></div>
-                </div>
-              ))}
-            </div>
-            <div className="space-y-6">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="bg-muted rounded-lg p-6">
-                  <div className="h-4 bg-muted rounded w-1/3 mb-4"></div>
-                  <div className="h-3 bg-muted rounded w-1/2 mb-2"></div>
-                  <div className="h-3 bg-muted rounded w-1/4"></div>
-                </div>
-              ))}
-            </div>
+      <div className="min-h-screen bg-background p-6 md:p-10">
+        <div className="max-w-4xl mx-auto animate-pulse space-y-4">
+          <div className="h-8 bg-white/5 rounded-xl w-1/3" />
+          <div className="grid grid-cols-3 gap-4">
+            {[...Array(3)].map((_, i) => <div key={i} className="h-24 bg-white/5 rounded-2xl" />)}
           </div>
+          <div className="h-48 bg-white/5 rounded-2xl" />
+          {[...Array(3)].map((_, i) => <div key={i} className="h-20 bg-white/5 rounded-2xl" />)}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
+    <div className="min-h-screen bg-background p-6 md:p-10">
+      <div className="max-w-4xl mx-auto">
+
+        <div className="flex items-start justify-between gap-4 mb-8 flex-wrap">
           <div>
-            <h1 className="text-3xl font-bold text-white">Earnings</h1>
-            <p className="text-muted-foreground">Track your income and payment history</p>
+            <h1 className="text-3xl font-black uppercase tracking-tight text-white">Earnings</h1>
+            <p className="text-white/40 font-bold mt-1">Your income and payment history.</p>
           </div>
-          <button className="px-6 py-3 bg-accent-1 text-white rounded-lg hover:bg-accent-2 transition-colors">
+          <button className="text-xs font-black uppercase tracking-wide px-4 py-2 rounded-full border-2 border-accent-4 text-accent-4 hover:bg-accent-4/10 transition-colors">
             Withdraw Funds
           </button>
         </div>
 
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-card rounded-lg p-6 border border-accent-3/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Earnings</p>
-                <p className="text-2xl font-bold text-white">${totalEarnings.toLocaleString()}</p>
-              </div>
-              <div className="text-3xl">💰</div>
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-4 mb-8">
+          {[
+            { label: 'Total earnings', value: `$${totalEarnings.toLocaleString()}`, color: 'var(--accent-4)' },
+            { label: 'Pending',        value: `$${pendingEarnings.toLocaleString()}`, color: 'var(--accent-3)' },
+            { label: 'Paid out',       value: `$${paidEarnings.toLocaleString()}`,   color: 'var(--accent-2)' },
+          ].map((s) => (
+            <div key={s.label} className="bg-white/[0.04] border border-white/10 rounded-2xl p-5">
+              <p className="text-[11px] font-black uppercase tracking-widest text-white/40 mb-2">{s.label}</p>
+              <p className="text-2xl font-black" style={{ color: s.color }}>{s.value}</p>
             </div>
-          </div>
-          <div className="bg-card rounded-lg p-6 border border-accent-3/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Pending</p>
-                <p className="text-2xl font-bold text-yellow-400">${pendingEarnings.toLocaleString()}</p>
-              </div>
-              <div className="text-3xl">⏳</div>
-            </div>
-          </div>
-          <div className="bg-card rounded-lg p-6 border border-accent-3/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Paid</p>
-                <p className="text-2xl font-bold text-green-400">${paidEarnings.toLocaleString()}</p>
-              </div>
-              <div className="text-3xl">✅</div>
-            </div>
-          </div>
+          ))}
         </div>
 
-        {/* Monthly Chart */}
-        <div className="bg-card rounded-lg p-6 border border-accent-3/20 mb-8">
-          <h2 className="text-xl font-semibold text-white mb-4">Monthly Earnings</h2>
+        {/* Monthly chart */}
+        <div className="border border-white/10 rounded-2xl p-5 mb-6">
+          <h2 className="text-sm font-black uppercase tracking-widest text-white/50 mb-5">Monthly Earnings</h2>
           <div className="space-y-4">
-            {monthlyStats.map((stat) => (
-              <div key={stat.month} className="flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-white">
-                      {new Date(stat.month + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+            {monthlyStats.map((stat, i) => {
+              const barColor = ['var(--accent-1)','var(--accent-2)','var(--accent-3)','var(--accent-4)'][i % 4];
+              return (
+                <div key={stat.month}>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <span className="text-xs font-bold text-white/60">
+                      {new Date(stat.month + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                     </span>
-                    <span className="text-sm font-bold text-white">${stat.earnings.toLocaleString()}</span>
+                    <div className="flex items-center gap-4">
+                      <span className="text-[11px] text-white/35">{stat.campaigns} campaigns · {stat.hoursWorked}h · ${(stat.earnings / stat.hoursWorked).toFixed(0)}/hr</span>
+                      <span className="text-sm font-black" style={{ color: barColor }}>${stat.earnings.toLocaleString()}</span>
+                    </div>
                   </div>
-                  <div className="w-full bg-muted rounded-full h-2">
-                    <div 
-                      className="bg-accent-1 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${(stat.earnings / 2000) * 100}%` }}
-                    />
-                  </div>
-                  <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                    <span>{stat.campaigns} campaigns</span>
-                    <span>{stat.hoursWorked} hours</span>
-                    <span>${(stat.earnings / stat.hoursWorked).toFixed(2)}/hr</span>
+                  <div className="h-2 rounded-full bg-white/10 overflow-hidden">
+                    <div className="h-2 rounded-full transition-all duration-500" style={{ width: `${(stat.earnings / maxEarnings) * 100}%`, backgroundColor: barColor }} />
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
-        {/* Filter Tabs */}
-        <div className="flex gap-2 mb-8">
-          {(['all', 'pending', 'paid'] as const).map((status) => (
+        {/* Filter */}
+        <div className="flex gap-2 mb-5">
+          {(['all', 'pending', 'paid'] as const).map((p) => (
             <button
-              key={status}
-              onClick={() => setSelectedPeriod(status)}
-              className={`px-4 py-2 rounded-lg capitalize transition-colors ${
-                selectedPeriod === status
-                  ? 'bg-accent-1 text-white'
-                  : 'bg-muted text-muted-foreground hover:text-white'
-              }`}
+              key={p}
+              onClick={() => setSelectedPeriod(p)}
+              className="px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wide border-2 transition-colors capitalize"
+              style={{
+                borderColor: selectedPeriod === p ? 'var(--accent-4)' : 'rgba(255,255,255,0.1)',
+                color: selectedPeriod === p ? 'var(--accent-4)' : 'rgba(255,255,255,0.4)',
+                background: selectedPeriod === p ? 'rgba(255,107,53,0.08)' : 'transparent',
+              }}
             >
-              {status}
+              {p}
             </button>
           ))}
         </div>
 
-        {/* Earnings List */}
-        <div className="space-y-6">
-          {filteredEarnings.map((earning) => (
-            <div key={earning.id} className="bg-card rounded-lg p-6 border border-accent-3/20">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-lg font-semibold text-white">{earning.campaignName}</h3>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(earning.status)}`}>
-                      {earning.status}
+        {/* Earnings list */}
+        <div className="space-y-3">
+          {filteredEarnings.map((earning) => {
+            const ss = STATUS_STYLE[earning.status] ?? STATUS_STYLE.pending;
+            return (
+              <div
+                key={earning.id}
+                className="border rounded-2xl p-5 flex items-center gap-4"
+                style={{ borderColor: ss.color + '30', background: ss.color + '05' }}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <h3 className="text-sm font-black text-white">{earning.campaignName}</h3>
+                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full border" style={{ color: ss.color, borderColor: ss.color + '50', background: ss.color + '15' }}>
+                      {ss.label}
                     </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Client: {earning.clientName}
-                  </p>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span>📅 {new Date(earning.periodStart).toLocaleDateString()} - {new Date(earning.periodEnd).toLocaleDateString()}</span>
-                    <span>💵 {earning.currency}</span>
-                    {earning.paidAt && (
-                      <span>✅ Paid on {new Date(earning.paidAt).toLocaleDateString()}</span>
+                    {earning.paymentMethod && (
+                      <span className="text-[10px] text-white/35 font-bold">
+                        {METHOD_ICON[earning.paymentMethod] ?? '💰'} {earning.paymentMethod.replace('_', ' ')}
+                      </span>
                     )}
                   </div>
-                  {earning.paymentMethod && (
-                    <div className="flex items-center gap-2 mt-2">
-                      <span>{getPaymentMethodIcon(earning.paymentMethod)}</span>
-                      <span className="text-sm text-muted-foreground">
-                        {earning.paymentMethod.replace('_', ' ').charAt(0).toUpperCase() + earning.paymentMethod.slice(1)}
-                      </span>
-                    </div>
-                  )}
-                  {earning.notes && (
-                    <p className="text-sm text-muted-foreground mt-2 italic">{earning.notes}</p>
-                  )}
+                  <p className="text-xs font-medium text-white/45">
+                    {earning.clientName} · {new Date(earning.periodStart).toLocaleDateString()} – {new Date(earning.periodEnd).toLocaleDateString()}
+                    {earning.paidAt ? ` · Paid ${new Date(earning.paidAt).toLocaleDateString()}` : ''}
+                  </p>
+                  {earning.notes && <p className="text-xs italic text-white/30 mt-1">{earning.notes}</p>}
                 </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-white">${earning.amount.toLocaleString()}</div>
-                  {earning.status === 'pending' && (
-                    <button className="mt-2 px-4 py-2 bg-muted text-white rounded-lg hover:bg-accent-1/20 transition-colors text-sm">
-                      View Details
-                    </button>
-                  )}
+                <div className="text-right shrink-0">
+                  <p className="text-xl font-black" style={{ color: ss.color }}>${earning.amount.toLocaleString()}</p>
+                  <p className="text-[11px] font-bold text-white/30">{earning.currency}</p>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {filteredEarnings.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">💰</div>
-            <h3 className="text-xl font-semibold text-white mb-2">No earnings found</h3>
-            <p className="text-muted-foreground">
-              {selectedPeriod === 'all' 
-                ? "You haven't earned any income yet."
-                : `No ${selectedPeriod} earnings found.`
-              }
+          <div className="text-center py-16 border-2 border-dashed border-white/10 rounded-3xl">
+            <p className="text-5xl mb-4">💰</p>
+            <h3 className="text-lg font-black uppercase tracking-tight text-white mb-2">No earnings found</h3>
+            <p className="text-sm font-medium text-white/40">
+              {selectedPeriod === 'all' ? "No income recorded yet." : `No ${selectedPeriod} earnings.`}
             </p>
           </div>
         )}

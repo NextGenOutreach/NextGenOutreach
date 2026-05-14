@@ -101,17 +101,6 @@ app.use(requestLogger);
 // Health check — always first
 app.get('/health', (_, res) => res.json({ status: 'ok', ts: new Date() }));
 
-// Routes
-app.use('/v1/auth',      authRoutes);
-app.use('/v1/reps',      repRoutes);
-app.use('/v1/campaigns', campaignRoutes);
-app.use('/v1/users',     userRoutes);
-app.use('/v1/clients',   clientRoutes);
-app.use('/v1/billing',   billingRoutes);
-app.use('/v1/analytics', analyticsRoutes);
-app.use('/v1/admin',     adminRoutes);
-app.use('/v1/webhooks',  webhookRoutes);
-app.use('/health',       healthRoutes);
 
 // API routes
 const apiRouter = express.Router();

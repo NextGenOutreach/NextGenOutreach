@@ -1,7 +1,5 @@
 "use client";
 
-import { DashboardLayout } from "@/components/DashboardLayout";
-
 const mockMissions = [
   { id: "M-101", title: "SaaS Outreach v2", rep: "Rep Alpha", progress: 65, status: "Active", accent: "var(--accent-1)" },
   { id: "M-102", title: "Fintech Growth Batch", rep: "Rep Gamma", progress: 40, status: "Active", accent: "var(--accent-2)" },
@@ -11,8 +9,8 @@ const mockMissions = [
 
 export default function MissionsPage() {
   return (
-    <DashboardLayout>
-      <div className="space-y-12">
+    <div className="min-h-screen bg-background p-6 md:p-10">
+      <div className="max-w-5xl mx-auto space-y-12">
         <header className="flex flex-col gap-4">
           <p className="text-xs font-black uppercase tracking-[0.4em] text-accent-2">Resource / Mission_Control</p>
           <h1 className="text-5xl font-black uppercase headline-shadow">Live Deployments</h1>
@@ -64,6 +62,6 @@ export default function MissionsPage() {
           ))}
         </div>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

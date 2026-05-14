@@ -40,7 +40,37 @@ export function ContactForm() {
       return;
     }
 
-    window.location.href = "/contact/success?mode=static";
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(fields.email)) {
+      setState({ error: "missing-fields", fields });
+      setIsPending(false);
+      return;
+    }
+
+    try {
+      const res = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          access_key: process.env.NEXT_PUBLIC_WEB3FORMS_KEY,
+          name: fields.fullName,
+          email: fields.email,
+          subject: `NextGenOutreach Inquiry — ${fields.contactType}`,
+          message: `Inquiry type: ${fields.contactType}\n\n${fields.message}`,
+          from_name: "NextGenOutreach Contact Form",
+        }),
+      });
+
+      if (res.ok) {
+        window.location.href = "/contact/success";
+      } else {
+        setState({ error: "submit-failed", fields });
+      }
+    } catch {
+      setState({ error: "submit-failed", fields });
+    } finally {
+      setIsPending(false);
+    }
   };
 
   return (

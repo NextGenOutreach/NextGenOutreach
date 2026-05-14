@@ -13,8 +13,13 @@ export function scoreRep(rep: RepProfile, prefs: ClientPreferences): number {
   // Follower fit: 20 points
   if (prefs.followerRange) {
     const mid = (prefs.followerRange.min + prefs.followerRange.max) / 2;
-    const diff = Math.abs(rep.linkedinFollowers - mid) / mid;
-    score += Math.max(0, 20 - diff * 20);
+    const followers = rep.linkedinFollowers ?? 0;
+    if (mid > 0) {
+      const diff = Math.abs(followers - mid) / mid;
+      score += Math.max(0, 20 - diff * 20);
+    } else if (followers === 0) {
+      score += 20;
+    }
   }
 
   // Availability: 15 points
@@ -79,8 +84,13 @@ export function calculateMatchScore(rep: RepProfile, prefs: ClientPreferences): 
   // Follower fit: 20 points
   if (prefs.followerRange) {
     const mid = (prefs.followerRange.min + prefs.followerRange.max) / 2;
-    const diff = Math.abs(rep.linkedinFollowers - mid) / mid;
-    followers = Math.max(0, 20 - diff * 20);
+    const followerCount = rep.linkedinFollowers ?? 0;
+    if (mid > 0) {
+      const diff = Math.abs(followerCount - mid) / mid;
+      followers = Math.max(0, 20 - diff * 20);
+    } else if (followerCount === 0) {
+      followers = 20;
+    }
   }
 
   // Availability: 15 points

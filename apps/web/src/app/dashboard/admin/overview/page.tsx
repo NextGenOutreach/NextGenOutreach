@@ -1,188 +1,164 @@
-"use client";
+import Link from 'next/link';
 
-import { useState, useEffect } from 'react';
+const STATS = [
+  { label: 'Total reps', value: 127, color: 'var(--accent-1)' },
+  { label: 'Total clients', value: 43, color: 'var(--accent-2)' },
+  { label: 'Active campaigns', value: 89, color: 'var(--accent-3)' },
+  { label: 'Monthly revenue', value: '$12,500', color: 'var(--accent-4)' },
+];
+
+const PENDING_VERIFICATIONS = [
+  { name: 'Mike Chen', niche: 'SaaS', submitted: '2h ago' },
+  { name: 'Aisha Patel', niche: 'FinTech', submitted: '5h ago' },
+  { name: 'Jordan Williams', niche: 'E-commerce', submitted: 'Yesterday' },
+];
+
+const SYSTEM_STATUS = [
+  { label: 'API Server', status: 'Online', ok: true },
+  { label: 'Database', status: 'Connected', ok: true },
+  { label: 'Redis Cache', status: 'Active', ok: true },
+  { label: 'Task Queue', status: 'Processing', ok: null },
+  { label: 'Browser Sessions', status: '12 Active', ok: null },
+];
+
+const ACTIVITY = [
+  { label: 'New rep registration: Sarah Johnson (Marketing)', color: 'var(--accent-2)', time: '1h ago' },
+  { label: 'Payment processed: TechCorp subscription renewed ($150)', color: 'var(--accent-4)', time: '3h ago' },
+  { label: 'ID verification submitted: Mike Chen', color: 'var(--accent-3)', time: '5h ago' },
+  { label: 'Campaign completed: SaaS Startup — 89 connections', color: 'var(--accent-1)', time: 'Yesterday' },
+  { label: 'New client registered: Velocity Brands', color: 'var(--accent-5)', time: 'Yesterday' },
+];
+
+const QUICK_ACTIONS = [
+  { label: 'Manage Users', href: '/dashboard/admin/users', accent: 'var(--accent-1)' },
+  { label: 'Review Verifications', href: '/dashboard/vault', accent: 'var(--accent-3)', badge: PENDING_VERIFICATIONS.length },
+  { label: 'Monitor Campaigns', href: '/dashboard/missions', accent: 'var(--accent-2)' },
+  { label: 'Billing Management', href: '/dashboard/agents', accent: 'var(--accent-4)' },
+];
 
 export default function AdminOverviewPage() {
-  const [stats, setStats] = useState({
-    totalReps: 127,
-    totalClients: 43,
-    activeCampaigns: 89,
-    monthlyRevenue: 12500
-  });
-  const [isLoading, setIsLoading] = useState(true);
+  return (
+    <div className="min-h-screen bg-background p-6 md:p-10">
+      <div className="max-w-5xl mx-auto">
 
-  useEffect(() => {
-    // TODO: Fetch real admin dashboard data from API
-    const fetchDashboardData = async () => {
-      try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        setStats({
-          totalReps: 127,
-          totalClients: 43,
-          activeCampaigns: 89,
-          monthlyRevenue: 12500
-        });
-      } catch (error) {
-        console.error('Failed to fetch admin dashboard data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+        <div className="mb-8 flex items-end justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-3xl font-black uppercase tracking-tight text-white">Admin Overview</h1>
+            <p className="text-white/40 font-bold mt-1">Platform health, pending actions, and recent events.</p>
+          </div>
+          <span className="text-[11px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border border-accent-1/40 text-accent-1 bg-accent-1/[0.06]">
+            Super Admin
+          </span>
+        </div>
 
-    fetchDashboardData();
-  }, []);
+        {/* Platform stats */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {STATS.map((s) => (
+            <div key={s.label} className="bg-white/[0.04] border border-white/10 rounded-2xl p-5">
+              <p className="text-[11px] font-black uppercase tracking-widest text-white/40 mb-2">{s.label}</p>
+              <p className="text-3xl font-black" style={{ color: s.color }}>{s.value}</p>
+            </div>
+          ))}
+        </div>
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="animate-pulse">
-            <div className="h-8 bg-muted rounded w-1/4 mb-8"></div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="bg-muted rounded-lg p-6">
-                  <div className="h-4 bg-muted rounded w-1/2 mb-2"></div>
-                  <div className="h-8 bg-muted rounded"></div>
+        {/* Pending verifications alert */}
+        {PENDING_VERIFICATIONS.length > 0 && (
+          <div className="mb-6 border-2 border-dashed border-accent-3/60 rounded-2xl p-4 bg-accent-3/[0.04]">
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🪪</span>
+                <p className="text-sm font-black text-accent-3 uppercase tracking-wide">
+                  {PENDING_VERIFICATIONS.length} Verification{PENDING_VERIFICATIONS.length !== 1 ? 's' : ''} Awaiting Review
+                </p>
+              </div>
+              <Link href="/dashboard/vault" className="text-xs font-black uppercase tracking-wide text-accent-3 hover:underline">
+                View all →
+              </Link>
+            </div>
+            <div className="space-y-2">
+              {PENDING_VERIFICATIONS.map((v, i) => (
+                <div key={i} className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.06] last:border-none">
+                  <div className="flex items-center gap-3">
+                    <span className="w-7 h-7 rounded-full bg-accent-3/20 flex items-center justify-center text-xs font-black text-accent-3">
+                      {v.name[0]}
+                    </span>
+                    <div>
+                      <p className="text-sm font-black text-white">{v.name}</p>
+                      <p className="text-xs text-white/40 font-medium">{v.niche}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[11px] font-bold text-white/30">{v.submitted}</span>
+                    <Link href="/dashboard/vault" className="text-[11px] font-black uppercase px-3 py-1 rounded-full border border-accent-3/40 text-accent-3 hover:bg-accent-3/10 transition-colors">
+                      Review
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="grid lg:grid-cols-3 gap-6 mb-6">
+          {/* Quick actions */}
+          <div className="lg:col-span-1">
+            <h2 className="text-sm font-black uppercase tracking-widest text-white/50 mb-4">Quick Actions</h2>
+            <div className="space-y-2">
+              {QUICK_ACTIONS.map((a) => (
+                <Link
+                  key={a.label}
+                  href={a.href}
+                  className="flex items-center justify-between w-full p-3 rounded-xl border transition-colors group"
+                  style={{ borderColor: a.accent + '30' }}
+                >
+                  <span className="text-sm font-black text-white group-hover:opacity-80">{a.label}</span>
+                  <div className="flex items-center gap-2">
+                    {a.badge !== undefined && (
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full" style={{ background: a.accent + '30', color: a.accent }}>
+                        {a.badge}
+                      </span>
+                    )}
+                    <span className="text-white/30 group-hover:text-white/60 transition-colors">→</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* System status */}
+          <div className="lg:col-span-2">
+            <h2 className="text-sm font-black uppercase tracking-widest text-white/50 mb-4">System Status</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {SYSTEM_STATUS.map((s) => (
+                <div key={s.label} className="flex items-center justify-between p-3 bg-white/[0.03] border border-white/[0.06] rounded-xl">
+                  <span className="text-sm font-bold text-white/60">{s.label}</span>
+                  <span
+                    className="text-[11px] font-black px-2 py-0.5 rounded-full border"
+                    style={{
+                      color: s.ok === true ? 'var(--accent-2)' : s.ok === false ? 'var(--accent-4)' : 'rgba(255,255,255,0.4)',
+                      borderColor: s.ok === true ? 'rgba(0,245,212,0.3)' : s.ok === false ? 'rgba(255,107,53,0.3)' : 'rgba(255,255,255,0.1)',
+                      background: s.ok === true ? 'rgba(0,245,212,0.08)' : s.ok === false ? 'rgba(255,107,53,0.08)' : 'rgba(255,255,255,0.04)',
+                    }}
+                  >
+                    {s.status}
+                  </span>
                 </div>
               ))}
             </div>
           </div>
         </div>
-      </div>
-    );
-  }
 
-  return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
-          <p className="text-muted-foreground">Platform overview and management</p>
-        </div>
-
-        {/* Platform Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-card rounded-lg p-6 border border-accent-3/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Reps</p>
-                <p className="text-2xl font-bold text-white">{stats.totalReps}</p>
+        {/* Recent activity */}
+        <div>
+          <h2 className="text-sm font-black uppercase tracking-widest text-white/50 mb-4">Recent Platform Activity</h2>
+          <div className="space-y-1">
+            {ACTIVITY.map((a, i) => (
+              <div key={i} className="flex items-start gap-3 py-2.5 border-b border-white/[0.05] last:border-none">
+                <span className="mt-1.5 shrink-0 w-2 h-2 rounded-full" style={{ backgroundColor: a.color }} />
+                <p className="text-sm font-medium text-white/60 flex-1 leading-snug">{a.label}</p>
+                <span className="shrink-0 text-[11px] font-bold text-white/25">{a.time}</span>
               </div>
-              <div className="p-3 bg-accent-1/20 rounded-lg">
-                <div className="w-6 h-6 bg-accent-1 rounded"></div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-card rounded-lg p-6 border border-accent-3/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Clients</p>
-                <p className="text-2xl font-bold text-white">{stats.totalClients}</p>
-              </div>
-              <div className="p-3 bg-accent-2/20 rounded-lg">
-                <div className="w-6 h-6 bg-accent-2 rounded"></div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-card rounded-lg p-6 border border-accent-3/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Active Campaigns</p>
-                <p className="text-2xl font-bold text-white">{stats.activeCampaigns}</p>
-              </div>
-              <div className="p-3 bg-accent-3/20 rounded-lg">
-                <div className="w-6 h-6 bg-accent-3 rounded"></div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-card rounded-lg p-6 border border-accent-3/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Monthly Revenue</p>
-                <p className="text-2xl font-bold text-white">${stats.monthlyRevenue.toLocaleString()}</p>
-              </div>
-              <div className="p-3 bg-accent-4/20 rounded-lg">
-                <div className="w-6 h-6 bg-accent-4 rounded"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Admin Actions */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="bg-card rounded-lg p-6 border border-accent-3/20">
-            <h2 className="text-xl font-semibold text-white mb-4">Quick Actions</h2>
-            <div className="space-y-3">
-              <button className="w-full text-left px-4 py-3 bg-muted rounded-lg hover:bg-accent-1/20 transition-colors">
-                <span className="text-white">Manage Users</span>
-              </button>
-              <button className="w-full text-left px-4 py-3 bg-muted rounded-lg hover:bg-accent-1/20 transition-colors">
-                <span className="text-white">Review Rep Verifications</span>
-              </button>
-              <button className="w-full text-left px-4 py-3 bg-muted rounded-lg hover:bg-accent-1/20 transition-colors">
-                <span className="text-white">Monitor Campaigns</span>
-              </button>
-              <button className="w-full text-left px-4 py-3 bg-muted rounded-lg hover:bg-accent-1/20 transition-colors">
-                <span className="text-white">View Analytics</span>
-              </button>
-              <button className="w-full text-left px-4 py-3 bg-muted rounded-lg hover:bg-accent-1/20 transition-colors">
-                <span className="text-white">Billing Management</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="bg-card rounded-lg p-6 border border-accent-3/20">
-            <h2 className="text-xl font-semibold text-white mb-4">System Status</h2>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">API Server</span>
-                <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs">Online</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Database</span>
-                <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs">Connected</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Redis Cache</span>
-                <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs">Active</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Browser Sessions</span>
-                <span className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs">12 Active</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Task Queue</span>
-                <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded text-xs">Processing</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Recent Activity */}
-        <div className="mt-8 bg-card rounded-lg p-6 border border-accent-3/20">
-          <h2 className="text-xl font-semibold text-white mb-4">Recent Platform Activity</h2>
-          <div className="space-y-3">
-            <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              <span className="text-sm text-muted-foreground">New rep registration: Sarah Johnson (Marketing)</span>
-            </div>
-            <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-sm text-muted-foreground">Payment processed: TechCorp subscription renewed</span>
-            </div>
-            <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-              <span className="text-sm text-muted-foreground">ID verification pending: Mike Chen (Sales Rep)</span>
-            </div>
-            <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-              <span className="text-sm text-muted-foreground">Campaign completed: SaaS Startup outreach</span>
-            </div>
+            ))}
           </div>
         </div>
       </div>

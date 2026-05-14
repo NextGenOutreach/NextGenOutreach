@@ -1,6 +1,5 @@
 "use client";
 
-import { DashboardLayout } from "@/components/DashboardLayout";
 import { MetricCard } from "@/components/MetricCard";
 
 const mockAgents = [
@@ -12,8 +11,8 @@ const mockAgents = [
 
 export default function RepIntelligencePage() {
   return (
-    <DashboardLayout>
-      <div className="space-y-12">
+    <div className="min-h-screen bg-background p-6 md:p-10">
+      <div className="max-w-5xl mx-auto space-y-12">
         <header className="flex flex-col gap-4">
           <p className="text-xs font-black uppercase tracking-[0.4em] text-accent-5">Resource / Rep_Intelligence</p>
           <h1 className="text-5xl font-black uppercase headline-shadow">Tactical Squadron</h1>
@@ -76,6 +75,6 @@ export default function RepIntelligencePage() {
           ))}
         </div>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

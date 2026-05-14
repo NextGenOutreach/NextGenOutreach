@@ -8,6 +8,7 @@ import {
   createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
   updateProfile,
+  getIdTokenResult,
 } from "firebase/auth";
 import { auth } from "./firebase";
 
@@ -23,25 +24,42 @@ interface AuthUser {
 interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<AuthUser>;
   signUp: (email: string, password: string, role: UserRole, displayName?: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-function mapFirebaseUser(firebaseUser: User): AuthUser {
-  // Store role in localStorage since Firebase Auth doesn't have custom claims on client
-  const storedRole = typeof window !== "undefined"
-    ? (localStorage.getItem(`user_role_${firebaseUser.uid}`) as UserRole | null)
-    : null;
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
-  return {
-    uid: firebaseUser.uid,
-    email: firebaseUser.email,
-    displayName: firebaseUser.displayName,
-    role: storedRole || "client",
-  };
+async function resolveUserRole(firebaseUser: User, registrationRole?: UserRole): Promise<UserRole> {
+  try {
+    const tokenResult = await getIdTokenResult(firebaseUser);
+    if (tokenResult.claims.role) {
+      return tokenResult.claims.role as UserRole;
+    }
+
+    const idToken = tokenResult.token;
+    const response = await fetch(`${API_URL}/api/v1/auth/sync-claims`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${idToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ role: registrationRole }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      await getIdTokenResult(firebaseUser, true);
+      return (data.data?.role as UserRole) ?? "client";
+    }
+  } catch {
+    // Backend unavailable — fall back to registration role or default
+  }
+
+  return registrationRole ?? "client";
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -53,9 +71,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       return;
     }
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        setUser(mapFirebaseUser(firebaseUser));
+        const role = await resolveUserRole(firebaseUser);
+        setUser({
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          displayName: firebaseUser.displayName,
+          role,
+        });
       } else {
         setUser(null);
       }
@@ -64,10 +88,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return unsubscribe;
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string): Promise<AuthUser> => {
     if (!auth) throw new Error("Firebase not initialized");
     const cred = await signInWithEmailAndPassword(auth, email, password);
-    setUser(mapFirebaseUser(cred.user));
+    const role = await resolveUserRole(cred.user);
+    const authUser: AuthUser = {
+      uid: cred.user.uid,
+      email: cred.user.email,
+      displayName: cred.user.displayName,
+      role,
+    };
+    setUser(authUser);
+    return authUser;
   };
 
   const signUp = async (email: string, password: string, role: UserRole, displayName?: string) => {
@@ -76,9 +108,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (displayName) {
       await updateProfile(cred.user, { displayName });
     }
-    // Persist role locally
-    localStorage.setItem(`user_role_${cred.user.uid}`, role);
-    setUser({ ...mapFirebaseUser(cred.user), role });
+    const assignedRole = await resolveUserRole(cred.user, role);
+    setUser({
+      uid: cred.user.uid,
+      email: cred.user.email,
+      displayName: cred.user.displayName ?? displayName ?? null,
+      role: assignedRole,
+    });
   };
 
   const signOut = async () => {

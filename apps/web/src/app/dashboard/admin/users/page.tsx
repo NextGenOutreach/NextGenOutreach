@@ -152,34 +152,18 @@ export default function AdminUsersPage() {
     return matchesSearch && matchesRole && matchesStatus;
   });
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'bg-green-500/20 text-green-400 border-green-500';
-      case 'pending': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500';
-      case 'suspended': return 'bg-orange-500/20 text-orange-400 border-orange-500';
-      case 'banned': return 'bg-red-500/20 text-red-400 border-red-500';
-      default: return 'bg-gray-500/20 text-gray-400 border-gray-500';
-    }
+  const STATUS_STYLE: Record<string, { color: string; label: string }> = {
+    active:    { color: 'var(--accent-2)', label: 'Active' },
+    pending:   { color: 'var(--accent-3)', label: 'Pending' },
+    suspended: { color: 'var(--accent-4)', label: 'Suspended' },
+    banned:    { color: 'var(--accent-1)', label: 'Banned' },
   };
 
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'admin': return 'bg-purple-500/20 text-purple-400';
-      case 'super_admin': return 'bg-red-500/20 text-red-400';
-      case 'client': return 'bg-blue-500/20 text-blue-400';
-      case 'rep': return 'bg-green-500/20 text-green-400';
-      default: return 'bg-gray-500/20 text-gray-400';
-    }
-  };
-
-  const getRoleIcon = (role: string) => {
-    switch (role) {
-      case 'admin': return '👑';
-      case 'super_admin': return '🔧';
-      case 'client': return '🏢';
-      case 'rep': return '👤';
-      default: return '👥';
-    }
+  const ROLE_STYLE: Record<string, { color: string; icon: string; label: string }> = {
+    client:      { color: 'var(--accent-2)', icon: '🏢', label: 'Client' },
+    rep:         { color: 'var(--accent-3)', icon: '👤', label: 'Rep' },
+    admin:       { color: 'var(--accent-1)', icon: '👑', label: 'Admin' },
+    super_admin: { color: 'var(--accent-1)', icon: '🔧', label: 'Super Admin' },
   };
 
   const handleStatusChange = (userId: string, newStatus: User['status']) => {
@@ -198,267 +182,174 @@ export default function AdminUsersPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="animate-pulse">
-            <div className="h-8 bg-muted rounded w-1/4 mb-8"></div>
-            <div className="grid grid-cols-1 gap-6">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="bg-muted rounded-lg p-6">
-                  <div className="h-4 bg-muted rounded w-1/3 mb-4"></div>
-                  <div className="h-3 bg-muted rounded w-1/2 mb-2"></div>
-                  <div className="h-3 bg-muted rounded w-1/4"></div>
-                </div>
-              ))}
-            </div>
+      <div className="min-h-screen bg-background p-6 md:p-10">
+        <div className="max-w-5xl mx-auto animate-pulse space-y-4">
+          <div className="h-8 bg-white/5 rounded-xl w-1/3" />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => <div key={i} className="h-24 bg-white/5 rounded-2xl" />)}
           </div>
+          {[...Array(4)].map((_, i) => <div key={i} className="h-28 bg-white/5 rounded-2xl" />)}
         </div>
       </div>
     );
   }
 
+  const selectClass = "w-full px-3 py-2 bg-white/[0.04] border border-white/10 rounded-xl text-sm font-bold text-white focus:outline-none focus:border-accent-1/60 transition-colors";
+
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
+    <div className="min-h-screen bg-background p-6 md:p-10">
+      <div className="max-w-5xl mx-auto">
+
+        <div className="flex items-start justify-between gap-4 mb-8 flex-wrap">
           <div>
-            <h1 className="text-3xl font-bold text-white">User Management</h1>
-            <p className="text-muted-foreground">Manage platform users and their permissions</p>
+            <h1 className="text-3xl font-black uppercase tracking-tight text-white">User Management</h1>
+            <p className="text-white/40 font-bold mt-1">Manage platform users and their permissions.</p>
           </div>
-          <button className="px-6 py-3 bg-accent-1 text-white rounded-lg hover:bg-accent-2 transition-colors">
-            Export Users
+          <button className="text-xs font-black uppercase tracking-wide px-4 py-2 rounded-full border-2 border-white/20 text-white/50 hover:border-white/40 hover:text-white/70 transition-colors">
+            Export CSV
           </button>
         </div>
 
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-card rounded-lg p-6 border border-accent-3/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Users</p>
-                <p className="text-2xl font-bold text-white">{users.length}</p>
-              </div>
-              <div className="text-3xl">👥</div>
-            </div>
-          </div>
-          <div className="bg-card rounded-lg p-6 border border-accent-3/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Active Users</p>
-                <p className="text-2xl font-bold text-green-400">
-                  {users.filter(u => u.status === 'active').length}
-                </p>
-              </div>
-              <div className="text-3xl">✅</div>
-            </div>
-          </div>
-          <div className="bg-card rounded-lg p-6 border border-accent-3/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Pending Verification</p>
-                <p className="text-2xl font-bold text-yellow-400">
-                  {users.filter(u => u.status === 'pending').length}
-                </p>
-              </div>
-              <div className="text-3xl">⏳</div>
-            </div>
-          </div>
-          <div className="bg-card rounded-lg p-6 border border-accent-3/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Reps</p>
-                <p className="text-2xl font-bold text-blue-400">
-                  {users.filter(u => u.role === 'rep').length}
-                </p>
-              </div>
-              <div className="text-3xl">👤</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Filters */}
-        <div className="bg-card rounded-lg p-6 border border-accent-3/20 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Search */}
-            <div>
-              <label className="block text-sm font-medium text-white mb-2">Search Users</label>
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search by email, name, or company..."
-                className="w-full px-3 py-2 bg-muted border border-accent-3 rounded-lg text-white placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent-1"
-              />
-            </div>
-
-            {/* Role Filter */}
-            <div>
-              <label className="block text-sm font-medium text-white mb-2">Role</label>
-              <select
-                value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value as any)}
-                className="w-full px-3 py-2 bg-muted border border-accent-3 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-accent-1"
-              >
-                <option value="all">All Roles</option>
-                <option value="client">Clients</option>
-                <option value="rep">Reps</option>
-                <option value="admin">Admins</option>
-                <option value="super_admin">Super Admins</option>
-              </select>
-            </div>
-
-            {/* Status Filter */}
-            <div>
-              <label className="block text-sm font-medium text-white mb-2">Status</label>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as any)}
-                className="w-full px-3 py-2 bg-muted border border-accent-3 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-accent-1"
-              >
-                <option value="all">All Status</option>
-                <option value="active">Active</option>
-                <option value="pending">Pending</option>
-                <option value="suspended">Suspended</option>
-                <option value="banned">Banned</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Results Count */}
-        <div className="mb-6">
-          <p className="text-muted-foreground">
-            Found {filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''}
-          </p>
-        </div>
-
-        {/* Users List */}
-        <div className="space-y-6">
-          {filteredUsers.map((user) => (
-            <div key={user.id} className="bg-card rounded-lg p-6 border border-accent-3/20">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-3">
-                    <span className="text-2xl">{getRoleIcon(user.role)}</span>
-                    <div>
-                      <h3 className="text-lg font-semibold text-white">
-                        {user.profile?.name || user.profile?.companyName || user.email}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">{user.email}</p>
-                    </div>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(user.role)}`}>
-                      {user.role.replace('_', ' ')}
-                    </span>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(user.status)}`}>
-                      {user.status}
-                    </span>
-                  </div>
-
-                  {/* Profile Info */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">Location</p>
-                      <p className="text-sm text-white">{user.profile?.location || 'Not specified'}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">Industry</p>
-                      <p className="text-sm text-white">{user.profile?.industry || 'Not specified'}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">Joined</p>
-                      <p className="text-sm text-white">{new Date(user.createdAt).toLocaleDateString()}</p>
-                    </div>
-                  </div>
-
-                  {/* Rep-specific stats */}
-                  {user.role === 'rep' && user.profile && (
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-1">LinkedIn Followers</p>
-                        <p className="text-sm text-white">{user.profile.linkedinFollowers?.toLocaleString() || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-1">Rating</p>
-                        <p className="text-sm text-white">{user.profile.rating ? `${user.profile.rating} ⭐` : 'N/A'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-1">Total Campaigns</p>
-                        <p className="text-sm text-white">{user.stats?.totalCampaigns || 0}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-1">Total Earnings</p>
-                        <p className="text-sm text-white">${user.stats?.totalEarnings?.toLocaleString() || 0}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Client-specific stats */}
-                  {user.role === 'client' && user.stats && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-1">Total Campaigns</p>
-                        <p className="text-sm text-white">{user.stats.totalCampaigns || 0}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-1">Active Campaigns</p>
-                        <p className="text-sm text-white">{user.stats.activeCampaigns || 0}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Last Login */}
-                  {user.lastLoginAt && (
-                    <div className="text-sm text-muted-foreground">
-                      Last login: {new Date(user.lastLoginAt).toLocaleString()}
-                    </div>
-                  )}
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-2">
-                  <button className="px-4 py-2 bg-muted text-white rounded-lg hover:bg-accent-1/20 transition-colors">
-                    View Details
-                  </button>
-                  {user.status === 'pending' && (
-                    <button 
-                      onClick={() => handleStatusChange(user.id, 'active')}
-                      className="px-4 py-2 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition-colors"
-                    >
-                      Approve
-                    </button>
-                  )}
-                  {user.status === 'active' && (
-                    <button 
-                      onClick={() => handleStatusChange(user.id, 'suspended')}
-                      className="px-4 py-2 bg-orange-500/20 text-orange-400 rounded-lg hover:bg-orange-500/30 transition-colors"
-                    >
-                      Suspend
-                    </button>
-                  )}
-                  <select
-                    value={user.role}
-                    onChange={(e) => handleRoleChange(user.id, e.target.value as any)}
-                    className="px-4 py-2 bg-muted text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-1"
-                  >
-                    <option value="client">Client</option>
-                    <option value="rep">Rep</option>
-                    <option value="admin">Admin</option>
-                    <option value="super_admin">Super Admin</option>
-                  </select>
-                </div>
-              </div>
+        {/* Stats */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {[
+            { label: 'Total users',        value: users.length,                                  color: 'var(--accent-1)' },
+            { label: 'Active',             value: users.filter(u => u.status === 'active').length,  color: 'var(--accent-2)' },
+            { label: 'Pending',            value: users.filter(u => u.status === 'pending').length, color: 'var(--accent-3)' },
+            { label: 'Reps',               value: users.filter(u => u.role === 'rep').length,       color: 'var(--accent-4)' },
+          ].map((s) => (
+            <div key={s.label} className="bg-white/[0.04] border border-white/10 rounded-2xl p-5">
+              <p className="text-[11px] font-black uppercase tracking-widest text-white/40 mb-2">{s.label}</p>
+              <p className="text-3xl font-black" style={{ color: s.color }}>{s.value}</p>
             </div>
           ))}
         </div>
 
+        {/* Filters */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search name, email, company…"
+            className={selectClass + ' placeholder:text-white/25'}
+          />
+          <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value as any)} className={selectClass}>
+            <option value="all">All Roles</option>
+            <option value="client">Clients</option>
+            <option value="rep">Reps</option>
+            <option value="admin">Admins</option>
+            <option value="super_admin">Super Admins</option>
+          </select>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as any)} className={selectClass}>
+            <option value="all">All Status</option>
+            <option value="active">Active</option>
+            <option value="pending">Pending</option>
+            <option value="suspended">Suspended</option>
+            <option value="banned">Banned</option>
+          </select>
+        </div>
+
+        <p className="text-[11px] font-black uppercase tracking-widest text-white/30 mb-4">
+          {filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''}
+        </p>
+
+        {/* User cards */}
+        <div className="space-y-3">
+          {filteredUsers.map((user) => {
+            const rs = ROLE_STYLE[user.role] ?? ROLE_STYLE.client;
+            const ss = STATUS_STYLE[user.status] ?? STATUS_STYLE.active;
+            const displayName = user.profile?.name || user.profile?.companyName || user.email;
+            return (
+              <div
+                key={user.id}
+                className="border rounded-2xl p-5"
+                style={{ borderColor: rs.color + '30', background: rs.color + '06' }}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <span
+                      className="mt-0.5 w-9 h-9 rounded-full flex items-center justify-center text-xs font-black shrink-0"
+                      style={{ background: rs.color + '25', color: rs.color }}
+                    >
+                      {displayName[0].toUpperCase()}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 mb-0.5">
+                        <h3 className="text-sm font-black text-white">{displayName}</h3>
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full" style={{ color: rs.color, background: rs.color + '20' }}>
+                          {rs.icon} {rs.label}
+                        </span>
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full border" style={{ color: ss.color, borderColor: ss.color + '50', background: ss.color + '12' }}>
+                          {ss.label}
+                        </span>
+                      </div>
+                      <p className="text-xs font-medium text-white/40">{user.email}</p>
+                      <p className="text-xs font-medium text-white/30 mt-0.5">
+                        {[user.profile?.location, user.profile?.industry, `Joined ${new Date(user.createdAt).toLocaleDateString()}`].filter(Boolean).join(' · ')}
+                        {user.lastLoginAt ? ` · Last seen ${new Date(user.lastLoginAt).toLocaleString()}` : ''}
+                      </p>
+
+                      {/* Rep stats inline */}
+                      {user.role === 'rep' && (
+                        <div className="flex flex-wrap gap-4 mt-2">
+                          {user.profile?.linkedinFollowers && <span className="text-[11px] font-bold text-white/45">{user.profile.linkedinFollowers.toLocaleString()} followers</span>}
+                          {user.profile?.rating && <span className="text-[11px] font-bold text-white/45">{user.profile.rating} ⭐ ({user.profile.totalReviews} reviews)</span>}
+                          {user.stats?.totalEarnings && <span className="text-[11px] font-bold" style={{ color: 'var(--accent-4)' }}>${user.stats.totalEarnings.toLocaleString()} earned</span>}
+                          {user.stats?.totalCampaigns && <span className="text-[11px] font-bold text-white/45">{user.stats.totalCampaigns} campaigns</span>}
+                        </div>
+                      )}
+                      {user.role === 'client' && user.stats && (
+                        <div className="flex flex-wrap gap-4 mt-2">
+                          <span className="text-[11px] font-bold text-white/45">{user.stats.totalCampaigns || 0} total campaigns</span>
+                          <span className="text-[11px] font-bold" style={{ color: 'var(--accent-2)' }}>{user.stats.activeCampaigns || 0} active</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                    {user.status === 'pending' && (
+                      <button
+                        onClick={() => handleStatusChange(user.id, 'active')}
+                        className="text-[11px] font-black uppercase px-3 py-1.5 rounded-full border-2 transition-colors"
+                        style={{ borderColor: 'var(--accent-2)', color: 'var(--accent-2)' }}
+                      >
+                        Approve
+                      </button>
+                    )}
+                    {user.status === 'active' && (
+                      <button
+                        onClick={() => handleStatusChange(user.id, 'suspended')}
+                        className="text-[11px] font-black uppercase px-3 py-1.5 rounded-full border-2 transition-colors"
+                        style={{ borderColor: 'var(--accent-4)', color: 'var(--accent-4)' }}
+                      >
+                        Suspend
+                      </button>
+                    )}
+                    <select
+                      value={user.role}
+                      onChange={(e) => handleRoleChange(user.id, e.target.value as any)}
+                      className="text-[11px] font-black uppercase bg-white/[0.04] border border-white/10 rounded-full px-3 py-1.5 text-white/60 focus:outline-none focus:border-accent-1/60 cursor-pointer"
+                    >
+                      <option value="client">Client</option>
+                      <option value="rep">Rep</option>
+                      <option value="admin">Admin</option>
+                      <option value="super_admin">Super Admin</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
         {filteredUsers.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">👥</div>
-            <h3 className="text-xl font-semibold text-white mb-2">No users found</h3>
-            <p className="text-muted-foreground">
-              Try adjusting your filters or search terms to find users.
-            </p>
+          <div className="text-center py-16 border-2 border-dashed border-white/10 rounded-3xl">
+            <p className="text-5xl mb-4">👥</p>
+            <h3 className="text-lg font-black uppercase tracking-tight text-white mb-2">No users found</h3>
+            <p className="text-sm font-medium text-white/40">Adjust your filters or search terms.</p>
           </div>
         )}
       </div>

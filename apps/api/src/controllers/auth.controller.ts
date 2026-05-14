@@ -6,6 +6,12 @@ import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../lib/jw
 import { registerSchema, loginSchema, RegisterInput, LoginInput } from '@nextgenoutreach/validators';
 import { UserRole } from '@nextgenoutreach/types';
 import prisma from '../lib/database';
+import { getAdminAuth } from '../lib/firebaseAdmin';
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const speakeasy = require('speakeasy') as {
+  totp: { verify(opts: { secret: string; encoding: string; token: string; window?: number }): boolean };
+};
 
 export class AuthController {
   async register(req: Request, res: Response) {
@@ -105,8 +111,22 @@ export class AuthController {
 
     // Check 2FA if enabled
     if (user.twoFaEnabled) {
-      // TODO: Implement TOTP verification
-      // For now, we'll skip this implementation
+      const { totpCode }: LoginInput = req.body;
+      if (!totpCode) {
+        return res.status(200).json({ success: true, data: { twoFaRequired: true } });
+      }
+      if (!user.twoFaSecret) {
+        return unauthorized(res, 'Two-factor authentication is misconfigured');
+      }
+      const verified = speakeasy.totp.verify({
+        secret: user.twoFaSecret,
+        encoding: 'base32',
+        token: totpCode,
+        window: 1,
+      });
+      if (!verified) {
+        return unauthorized(res, 'Invalid two-factor authentication code');
+      }
     }
 
     // Generate tokens
@@ -126,6 +146,34 @@ export class AuthController {
       accessToken,
       refreshToken
     });
+  }
+
+  async syncClaims(req: Request, res: Response) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      return unauthorized(res, 'Firebase ID token required');
+    }
+
+    const idToken = authHeader.split(' ')[1];
+    const { role } = req.body as { role?: string };
+
+    try {
+      const adminAuth = getAdminAuth();
+      const decoded = await adminAuth.verifyIdToken(idToken);
+      const userRecord = await adminAuth.getUser(decoded.uid);
+      const existingRole = (userRecord.customClaims as { role?: string } | null)?.role;
+
+      if (existingRole) {
+        return ok(res, { role: existingRole });
+      }
+
+      const assignedRole = role === 'rep' ? 'rep' : 'client';
+      await adminAuth.setCustomUserClaims(decoded.uid, { role: assignedRole });
+
+      return ok(res, { role: assignedRole });
+    } catch {
+      return unauthorized(res, 'Invalid or expired Firebase token');
+    }
   }
 
   async refresh(req: AuthRequest, res: Response) {
@@ -156,10 +204,6 @@ export class AuthController {
 
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
-      include: {
-        clientProfile: true,
-        repProfile: true
-      },
       select: {
         id: true,
         email: true,

@@ -22,15 +22,11 @@ export default function LoginPage() {
     setError('');
 
     try {
-      await signIn(email, password);
+      const authUser = await signIn(email, password);
 
-      // Read stored role to redirect
-      const stored = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!) : null;
-      const role = stored?.role || localStorage.getItem(`user_role_${stored?.uid}`) || 'client';
-
-      if (role === 'admin' || role === 'super_admin') {
+      if (authUser.role === 'admin' || authUser.role === 'super_admin') {
         router.push('/dashboard/admin/overview');
-      } else if (role === 'rep') {
+      } else if (authUser.role === 'rep') {
         router.push('/dashboard/rep/overview');
       } else {
         router.push('/dashboard/client/overview');
@@ -52,7 +48,7 @@ export default function LoginPage() {
       {/* Background decorations */}
       <div className="absolute inset-0 pattern-dots text-accent-1/5 opacity-30" />
       <div className="absolute top-10 left-10 text-6xl animate-float opacity-20">🔐</div>
-      <div className="absolute bottom-10 right-10 text-6xl animate-float-reverse opacity-20">🚀</div>
+      <div className="absolute bottom-10 right-10 text-6xl animate-float-r opacity-20">🚀</div>
       
       <MaxCard className="max-w-md w-full" accentColor="var(--accent-1)" shadowColor="var(--accent-3)">
         <div className="text-center mb-8">
@@ -62,7 +58,7 @@ export default function LoginPage() {
           </h2>
           <p className="text-sm text-white/70">
             Or{' '}
-            <Link href="/auth/register" className="font-medium text-accent-1 hover:text-accent-2">
+            <Link href="/register" className="font-medium text-accent-1 hover:text-accent-2">
               create a new account
             </Link>
           </p>
@@ -135,7 +131,7 @@ export default function LoginPage() {
           <div className="text-center">
             <p className="text-sm text-white/70">
               Don't have an account?{' '}
-              <Link href="/auth/register" className="font-medium text-accent-1 hover:text-accent-2">
+              <Link href="/register" className="font-medium text-accent-1 hover:text-accent-2">
                 Sign up
               </Link>
             </p>

@@ -1,7 +1,5 @@
 "use client";
 
-import { DashboardLayout } from "@/components/DashboardLayout";
-
 const mockLeads = [
   { id: "L-902", name: "Sarah Chen", company: "Aether AI", role: "CTO", status: "Interested", rep: "Rep Alpha", date: "2h ago" },
   { id: "L-844", name: "Marcus Thorne", company: "NeoBank", role: "VP Engineering", status: "Meeting Booked", rep: "Rep Gamma", date: "5h ago" },
@@ -19,8 +17,8 @@ const statusStyles: Record<string, string> = {
 
 export default function LeadVaultPage() {
   return (
-    <DashboardLayout>
-      <div className="space-y-10">
+    <div className="min-h-screen bg-background p-6 md:p-10">
+      <div className="max-w-5xl mx-auto space-y-10">
         <header className="flex flex-col gap-4">
           <p className="text-xs font-black uppercase tracking-[0.4em] text-accent-1">Resource / Lead_Vault</p>
           <h1 className="text-5xl font-black uppercase headline-shadow">Prospect Intelligence</h1>
@@ -76,12 +74,12 @@ export default function LeadVaultPage() {
 
         {/* Action Bar */}
         <div className="flex flex-wrap gap-4">
-          <button className="max-button text-xs py-2">Export Data (CSV)</button>
-          <button className="rounded-full border-4 border-accent-2 px-6 py-2 text-xs font-black uppercase tracking-widest hover:bg-accent-2 hover:text-background transition-all">
+          <button className="text-xs font-black uppercase tracking-widest px-6 py-2 rounded-full border-2 border-accent-1 text-accent-1 hover:bg-accent-1/10 transition-colors">Export CSV</button>
+          <button className="text-xs font-black uppercase tracking-widest px-6 py-2 rounded-full border-2 border-accent-2 text-accent-2 hover:bg-accent-2/10 transition-colors">
             Sync CRM
           </button>
         </div>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

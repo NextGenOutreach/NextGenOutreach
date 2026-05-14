@@ -184,8 +184,10 @@ body::after {
 /* Utility Animation Classes */
 .animate-float { animation: float 6s ease-in-out infinite; }
 .animate-float-r { animation: float-r 5s ease-in-out infinite; }
+.animate-float-reverse { animation: float-r 5s ease-in-out infinite; }
 .animate-wiggle { animation: wiggle 1.2s ease-in-out infinite; }
 .animate-bounce-s { animation: bounce-s 2s ease-in-out infinite; }
+.animate-bounce-subtle { animation: bounce-s 2s ease-in-out infinite; }
 .animate-spin-slow { animation: spin-slow 20s linear infinite; }
 .animate-pulse-g { animation: pulse-glow 2s ease-in-out infinite; }
 .animate-marquee { animation: marquee 18s linear infinite; }

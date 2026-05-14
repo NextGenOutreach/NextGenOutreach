@@ -28,6 +28,11 @@ export async function submitContactForm(
     return { error: "missing-fields", fields };
   }
 
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(fields.email)) {
+    return { error: "invalid-email", fields };
+  }
+
   // TODO: Wire to email service (SendGrid, Resend, etc.)
   redirect("/contact/success");
 }

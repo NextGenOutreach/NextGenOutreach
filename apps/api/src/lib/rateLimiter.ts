@@ -66,7 +66,7 @@ const clearFailedAttempts = (identifier: string) => {
 // Get client identifier (IP or user ID)
 const getClientIdentifier = (req: Request): string => {
   // Use user ID if available, otherwise IP
-  const userId = (req as any).user?.userId;
+  const userId = (req as any).user?.id;
   return userId || req.ip || req.connection.remoteAddress || 'unknown';
 };
 
@@ -145,9 +145,13 @@ export const recordFailedLogin = (req: Request, res: Response, next: Function) =
       
       // Update response with remaining attempts info
       if (!result.locked && result.remainingAttempts > 0) {
-        const responseData = typeof data === 'string' ? JSON.parse(data) : data;
-        responseData.remainingAttempts = result.remainingAttempts;
-        return originalSend.call(this, JSON.stringify(responseData));
+        try {
+          const responseData = typeof data === 'string' ? JSON.parse(data) : data;
+          responseData.remainingAttempts = result.remainingAttempts;
+          return originalSend.call(this, JSON.stringify(responseData));
+        } catch {
+          // Response is not JSON-parseable; send as-is
+        }
       }
     }
     

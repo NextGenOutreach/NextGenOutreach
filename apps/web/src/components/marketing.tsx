@@ -170,11 +170,16 @@ export function SiteFooter() {
           <MaxButton variant="ghost" href="/about-us" size="sm">About Us</MaxButton>
           <MaxButton variant="ghost" href="/login" size="sm">Login</MaxButton>
         </nav>
+        <nav className="footer-links flex flex-wrap gap-10">
+          <MaxButton variant="ghost" href="/privacy" size="sm">Privacy Policy</MaxButton>
+          <MaxButton variant="ghost" href="/terms" size="sm">Terms of Service</MaxButton>
+          <MaxButton variant="ghost" href="/contact" size="sm">Contact</MaxButton>
+        </nav>
         <div className="max-w-xl">
           <p className="footer-copy text-sm font-bold text-white/40 leading-relaxed">
             © 2026 NextGenOutreach. The world&apos;s #1 LinkedIn Reps Marketplace. 
             Facilitating human-led outreach through ID-verified professionals. 
-            Safe, compliant, and results-driven.
+            Safe, compliant, and results-driven. Registered in South Africa.
           </p>
         </div>
       </div>

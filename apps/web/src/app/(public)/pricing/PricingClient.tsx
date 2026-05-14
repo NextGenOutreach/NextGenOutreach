@@ -4,6 +4,35 @@ import React, { useState, useRef } from 'react';
 import { MarketingNav } from '@/components/marketing-nav';
 import { SiteFooter } from '@/components/marketing';
 
+function SliderInput({
+  label, value, min, max, step, format, color, onChange,
+}: {
+  label: string; value: number; min: number; max: number; step: number;
+  format: (v: number) => string; color: string; onChange: (v: number) => void;
+}) {
+  const pct = ((value - min) / (max - min)) * 100;
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-1.5">
+        <label className="text-[11px] font-bold uppercase tracking-widest text-white/55">{label}</label>
+        <span className="text-[13px] font-black" style={{ color }}>{format(value)}</span>
+      </div>
+      <div className="relative h-2 rounded-full bg-white/10">
+        <div className="absolute top-0 left-0 h-2 rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
+        <input
+          type="range" min={min} max={max} step={step} value={value}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+        />
+      </div>
+      <div className="flex justify-between mt-0.5">
+        <span className="text-[10px] text-white/25">{format(min)}</span>
+        <span className="text-[10px] text-white/25">{format(max)}</span>
+      </div>
+    </div>
+  );
+}
+
 const plans = {
   starter:  { name:'Starter',       price:75,   color:'var(--a2)' },
   pro:      { name:'Professional',  price:150,  color:'var(--a1)' },
@@ -15,10 +44,11 @@ export default function PricingClient() {
   const [demoMode, setDemoMode] = useState(true);
 
   // ROI State
-  const [roiProspects, setRoiProspects] = useState(200);
-  const [roiAccept, setRoiAccept] = useState(25);
-  const [roiConv, setRoiConv] = useState(8);
-  const [roiDeal, setRoiDeal] = useState(3000);
+  const [roiConnPerDay, setRoiConnPerDay] = useState(15);
+  const [roiAccept, setRoiAccept] = useState(30);
+  const [roiConv, setRoiConv] = useState(10);
+  const [roiClose, setRoiClose] = useState(20);
+  const [roiDeal, setRoiDeal] = useState(5000);
 
   // PayFast Form State
   const [fname, setFname] = useState('');
@@ -35,20 +65,24 @@ export default function PricingClient() {
   const toggleDemo = () => setDemoMode(!demoMode);
 
   const calcROI = () => {
-    const prospects = roiProspects || 0;
-    const accept = (roiAccept / 100) || 0;
-    const conv = (roiConv / 100) || 0;
-    const deal = roiDeal || 0;
-    const conns = Math.round(prospects * accept);
+    const connsSent = roiConnPerDay * 30;
+    const accept = roiAccept / 100;
+    const conv = roiConv / 100;
+    const close = roiClose / 100;
+    const deal = roiDeal;
+    const conns = Math.round(connsSent * accept);
     const meets = Math.round(conns * conv);
+    const deals = Math.round(meets * close);
+    const revenue = deals * deal;
     const pipe = meets * deal;
     const cost = plans[currentPlan]?.price || 150;
     const roi = cost > 0 ? (pipe / cost).toFixed(1) : '∞';
-
-    return { conns, meets, pipe, roi };
+    const paybackDays = revenue > 0 ? Math.round((cost / revenue) * 30) : null;
+    const payback = paybackDays === null ? '∞' : paybackDays < 1 ? '<1 day' : `${paybackDays} day${paybackDays !== 1 ? 's' : ''}`;
+    return { connsSent, conns, meets, deals, revenue, pipe, roi, payback };
   };
 
-  const { conns, meets, pipe, roi } = calcROI();
+  const { connsSent, conns, meets, deals, revenue, pipe, roi, payback } = calcROI();
 
   const submitPayFast = (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,29 +123,22 @@ export default function PricingClient() {
                    <div className="roi-card mb-8">
                      <div className="roi-title">📈 ROI Calculator</div>
                      <p className="text-[0.85rem] text-white/55 mb-6">Estimate the return on your investment before you commit.</p>
-                     <div className="space-y-4">
-                        <div>
-                          <label className="text-[12px] font-bold uppercase tracking-widest text-accent-3 mb-2 block">Prospects Contacted / Month (per rep)</label>
-                          <input className="roi-input" type="number" value={roiProspects} onChange={(e) => setRoiProspects(parseInt(e.target.value) || 0)} />
-                        </div>
-                        <div>
-                          <label className="text-[12px] font-bold uppercase tracking-widest text-accent-3 mb-2 block">Connection Accept Rate (%)</label>
-                          <input className="roi-input" type="number" value={roiAccept} onChange={(e) => setRoiAccept(parseInt(e.target.value) || 0)} />
-                        </div>
-                        <div>
-                          <label className="text-[12px] font-bold uppercase tracking-widest text-accent-3 mb-2 block">DM → Meeting Conversion Rate (%)</label>
-                          <input className="roi-input" type="number" value={roiConv} onChange={(e) => setRoiConv(parseInt(e.target.value) || 0)} />
-                        </div>
-                        <div>
-                          <label className="text-[12px] font-bold uppercase tracking-widest text-accent-3 mb-2 block">Average Deal Value ($)</label>
-                          <input className="roi-input" type="number" value={roiDeal} onChange={(e) => setRoiDeal(parseInt(e.target.value) || 0)} />
-                        </div>
+                     <div className="space-y-5">
+                        <SliderInput label="Connections sent / day" value={roiConnPerDay} min={5} max={50} step={1} format={(v) => `${v}/day`} color="var(--a2)" onChange={setRoiConnPerDay} />
+                        <SliderInput label="Connection accept rate" value={roiAccept} min={5} max={60} step={1} format={(v) => `${v}%`} color="var(--a3)" onChange={setRoiAccept} />
+                        <SliderInput label="Reply → meeting rate" value={roiConv} min={2} max={30} step={1} format={(v) => `${v}%`} color="var(--a1)" onChange={setRoiConv} />
+                        <SliderInput label="Meeting close rate" value={roiClose} min={5} max={60} step={1} format={(v) => `${v}%`} color="var(--a4)" onChange={setRoiClose} />
+                        <SliderInput label="Average deal value" value={roiDeal} min={500} max={25000} step={500} format={(v) => `$${v.toLocaleString()}`} color="var(--a5)" onChange={setRoiDeal} />
                      </div>
                      <div className="roi-results">
-                        <div className="roi-row"><span className="text-white/60 text-[0.85rem]">Connections / Month</span><span className="roi-val text-accent-2">{conns}</span></div>
-                        <div className="roi-row"><span className="text-white/60 text-[0.85rem]">Meetings Booked</span><span className="roi-val text-accent-3">{meets}</span></div>
-                        <div className="roi-row"><span className="text-white/60 text-[0.85rem]">Pipeline Value</span><span className="roi-val text-accent-1">${pipe.toLocaleString()}</span></div>
-                        <div className="roi-row border-none mt-2"><span className="font-bold text-accent-3 text-[0.85rem]">Est. ROI</span><span className="roi-val text-accent-3 text-[1.6rem]">{roi}×</span></div>
+                        <div className="roi-row"><span className="text-white/60 text-[0.85rem]">Connections sent / month</span><span className="roi-val text-accent-2">{connsSent.toLocaleString()}</span></div>
+                        <div className="roi-row"><span className="text-white/60 text-[0.85rem]">Accepted connections</span><span className="roi-val text-accent-2">{conns}</span></div>
+                        <div className="roi-row"><span className="text-white/60 text-[0.85rem]">Meetings booked</span><span className="roi-val text-accent-3">{meets}</span></div>
+                        <div className="roi-row"><span className="text-white/60 text-[0.85rem]">Deals closed</span><span className="roi-val text-accent-1">{deals}</span></div>
+                        <div className="roi-row"><span className="text-white/60 text-[0.85rem]">Projected revenue</span><span className="roi-val text-accent-1">${revenue.toLocaleString()}</span></div>
+                        <div className="roi-row"><span className="text-white/60 text-[0.85rem]">Pipeline value</span><span className="roi-val text-accent-4">${pipe.toLocaleString()}</span></div>
+                        <div className="roi-row"><span className="text-white/60 text-[0.85rem]">Payback period</span><span className="roi-val text-accent-2">{payback}</span></div>
+                        <div className="roi-row border-none mt-2"><span className="font-bold text-accent-3 text-[0.85rem]">Est. pipeline ROI</span><span className="roi-val text-accent-3 text-[1.6rem]">{roi}×</span></div>
                      </div>
                    </div>
 

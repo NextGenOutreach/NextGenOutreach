@@ -19,6 +19,8 @@ ssl
 .env
 .env.local
 .env.*.local
+.env.production
+.env.production.local
 
 # Deployment packages
 deploy

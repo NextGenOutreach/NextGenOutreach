@@ -42,6 +42,8 @@ export const metadata: Metadata = {
   }
 };
 
+const plausibleDomain = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -52,6 +54,15 @@ export default function RootLayout({
       lang="en"
       className={`${outfit.variable} ${dmSans.variable} ${bungee.variable} h-full antialiased`}
     >
+      <head>
+        {plausibleDomain && (
+          <script
+            defer
+            data-domain={plausibleDomain}
+            src="https://plausible.io/js/script.js"
+          />
+        )}
+      </head>
       <body className="min-h-full flex flex-col"><Providers>{children}</Providers></body>
     </html>
   );
