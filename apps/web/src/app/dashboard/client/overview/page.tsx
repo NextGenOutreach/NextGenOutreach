@@ -2,8 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useAuth } from '@/lib/auth-context';
+import { auth } from '@/lib/firebase';
 
 const ONBOARDING_KEY = 'ngo_onboarding_v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 const STEPS = [
   {
@@ -32,16 +35,17 @@ const STEPS = [
   },
 ];
 
-const STATS_DATA = {
-  activeCampaigns: 0,
-  connectionsSent: 0,
-  meetingsBooked: 0,
-  pipelineValue: 0,
-};
-
 export default function ClientOverviewPage() {
+  const { user } = useAuth();
   const [completed, setCompleted] = useState<Record<string, boolean>>({});
   const [hydrated, setHydrated] = useState(false);
+  const [stats, setStats] = useState({
+    activeCampaigns: 0,
+    connectionsSent: 0,
+    meetingsBooked: 0,
+    pipelineValue: 0,
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
 
   useEffect(() => {
     try {
@@ -49,7 +53,33 @@ export default function ClientOverviewPage() {
       if (saved) setCompleted(JSON.parse(saved));
     } catch { /* ignore */ }
     setHydrated(true);
-  }, []);
+
+    const fetchStats = async () => {
+      if (!user) return;
+      
+      try {
+        const idToken = await auth?.currentUser?.getIdToken();
+        if (!idToken) return;
+
+        const response = await fetch(`${API_URL}/api/v1/analytics/overview`, {
+          headers: {
+            'Authorization': `Bearer ${idToken}`
+          }
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          setStats(result.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch analytics:', error);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    fetchStats();
+  }, [user]);
 
   const toggle = (id: string) => {
     const next = { ...completed, [id]: !completed[id] };
@@ -85,12 +115,15 @@ export default function ClientOverviewPage() {
         {/* Stats row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {[
-            { label: 'Active campaigns', value: STATS_DATA.activeCampaigns, color: 'var(--accent-1)' },
-            { label: 'Connections sent', value: STATS_DATA.connectionsSent, color: 'var(--accent-2)' },
-            { label: 'Meetings booked', value: STATS_DATA.meetingsBooked, color: 'var(--accent-3)' },
-            { label: 'Pipeline value', value: `$${STATS_DATA.pipelineValue.toLocaleString()}`, color: 'var(--accent-4)' },
+            { label: 'Active campaigns', value: stats.activeCampaigns, color: 'var(--accent-1)' },
+            { label: 'Connections sent', value: stats.connectionsSent, color: 'var(--accent-2)' },
+            { label: 'Meetings booked', value: stats.meetingsBooked, color: 'var(--accent-3)' },
+            { label: 'Pipeline value', value: `$${stats.pipelineValue.toLocaleString()}`, color: 'var(--accent-4)' },
           ].map((s) => (
-            <div key={s.label} className="bg-white/[0.04] border border-white/10 rounded-2xl p-5">
+            <div key={s.label} className="bg-white/[0.04] border border-white/10 rounded-2xl p-5 relative overflow-hidden">
+              {loadingStats && (
+                <div className="absolute inset-0 bg-white/5 animate-pulse" />
+              )}
               <p className="text-[11px] font-black uppercase tracking-widest text-white/40 mb-2">{s.label}</p>
               <p className="text-3xl font-black" style={{ color: s.color }}>{s.value}</p>
             </div>
@@ -174,7 +207,7 @@ export default function ClientOverviewPage() {
         )}
 
         {/* Empty state / Quick actions */}
-        {STATS_DATA.activeCampaigns === 0 && (
+        {stats.activeCampaigns === 0 && (
           <div className="border-2 border-dashed border-white/15 rounded-3xl p-10 text-center">
             <p className="text-5xl mb-4">📭</p>
             <h3 className="text-xl font-black uppercase tracking-tight text-white mb-2">No active campaigns yet</h3>

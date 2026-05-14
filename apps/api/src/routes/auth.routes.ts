@@ -1,17 +1,19 @@
 import express from 'express';
 import { AuthController } from '../controllers/auth.controller';
-import { validate } from '../middleware/validate.middleware';
-import { requireAuth, requireRefreshAuth } from '../middleware/auth.middleware';
-import { registerSchema, loginSchema } from '@nextgenoutreach/validators';
+import { firebaseAuthMiddleware } from '../middleware/firebaseAuth.middleware';
 
 const router = express.Router();
 const ctrl = new AuthController();
 
-router.post('/register',        validate(registerSchema),  ctrl.register);
-router.post('/login',           validate(loginSchema),     ctrl.login);
-router.post('/refresh',         requireRefreshAuth,        ctrl.refresh);
-router.post('/logout',          requireAuth,               ctrl.logout);
-router.get('/me',               requireAuth,               ctrl.me);
-router.post('/sync-claims',                                ctrl.syncClaims);
+/**
+ * Public routes (or routes with custom token handling)
+ */
+router.post('/sync-claims', ctrl.syncClaims);
+
+/**
+ * Protected routes
+ */
+router.get('/me', firebaseAuthMiddleware, ctrl.me);
+router.post('/logout', firebaseAuthMiddleware, ctrl.logout);
 
 export { router as authRoutes };

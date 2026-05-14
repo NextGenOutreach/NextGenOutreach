@@ -43,6 +43,9 @@ const envSchema = z.object({
   // CORS Configuration
   CORS_ORIGIN: z.string().url('Invalid CORS_ORIGIN format'),
   
+  // Firebase Configuration
+  FIREBASE_SERVICE_ACCOUNT: z.string().min(1, 'FIREBASE_SERVICE_ACCOUNT is required'),
+
   // Session Configuration
   SESSION_SECRET: z.string().min(32, 'SESSION_SECRET must be at least 32 characters'),
   SESSION_MAX_AGE: z.string().transform(Number).default('86400000'),

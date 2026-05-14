@@ -8,7 +8,7 @@ import dotenv from 'dotenv';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
-import { authMiddleware } from './middleware/auth';
+import { firebaseAuthMiddleware as authMiddleware } from './middleware/firebaseAuth.middleware';
 import { requestLogger } from './middleware/requestLogger';
 import { morganStream } from './lib/logger';
 import { authRateLimit, accountLockout, recordFailedLogin, clearFailedLogin } from './lib/rateLimiter';
@@ -98,9 +98,8 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(limiter);
 app.use(requestLogger);
 
-// Health check — always first
-app.get('/health', (_, res) => res.json({ status: 'ok', ts: new Date() }));
-
+// Health check
+app.use('/', healthRoutes);
 
 // API routes
 const apiRouter = express.Router();

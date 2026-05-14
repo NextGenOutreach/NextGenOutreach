@@ -53,6 +53,7 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${outfit.variable} ${dmSans.variable} ${bungee.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <head>
         {plausibleDomain && (

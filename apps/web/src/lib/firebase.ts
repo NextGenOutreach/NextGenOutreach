@@ -14,8 +14,16 @@ let app: FirebaseApp | undefined;
 let auth: Auth | undefined;
 
 if (typeof window !== "undefined") {
-  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-  auth = getAuth(app);
+  try {
+    if (!firebaseConfig.apiKey) {
+      console.warn("Firebase API Key is missing. Check your .env.local or Vercel Environment Variables.");
+    } else {
+      app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+      auth = getAuth(app);
+    }
+  } catch (error) {
+    console.error("Firebase initialization failed:", error);
+  }
 }
 
 export { auth, app };

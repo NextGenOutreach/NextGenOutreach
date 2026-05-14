@@ -34,6 +34,8 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 async function resolveUserRole(firebaseUser: User, registrationRole?: UserRole): Promise<UserRole> {
+  if (!API_URL) return registrationRole ?? "client";
+  
   try {
     const tokenResult = await getIdTokenResult(firebaseUser);
     if (tokenResult.claims.role) {
@@ -55,8 +57,8 @@ async function resolveUserRole(firebaseUser: User, registrationRole?: UserRole):
       await getIdTokenResult(firebaseUser, true);
       return (data.data?.role as UserRole) ?? "client";
     }
-  } catch {
-    // Backend unavailable — fall back to registration role or default
+  } catch (error) {
+    console.warn("Backend claims sync failed, using default role:", error);
   }
 
   return registrationRole ?? "client";

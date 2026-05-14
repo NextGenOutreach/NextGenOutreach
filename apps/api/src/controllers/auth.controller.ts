@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
-import { AuthRequest, requireAuth } from '../middleware/auth.middleware';
+import { FirebaseAuthRequest } from '../middleware/firebaseAuth.middleware';
 import { ok, created, unauthorized, badRequest } from '../lib/response';
-import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../lib/jwt';
-import { registerSchema, loginSchema, RegisterInput, LoginInput } from '@nextgenoutreach/validators';
+import { signAccessToken, signRefreshToken } from '../lib/jwt';
+import { RegisterInput, LoginInput } from '@nextgenoutreach/validators';
 import { UserRole } from '@nextgenoutreach/types';
 import prisma from '../lib/database';
 import { getAdminAuth } from '../lib/firebaseAdmin';
@@ -176,12 +176,12 @@ export class AuthController {
     }
   }
 
-  async refresh(req: AuthRequest, res: Response) {
+  async refresh(req: FirebaseAuthRequest, res: Response) {
     if (!req.user) {
       return unauthorized(res);
     }
 
-    // Generate new tokens
+    // Generate new tokens (if still needed, though Firebase handles this)
     const payload = { sub: req.user.id, email: req.user.email, role: req.user.role };
     const accessToken = signAccessToken(payload);
     const refreshToken = signRefreshToken(payload);
@@ -192,12 +192,12 @@ export class AuthController {
     });
   }
 
-  async logout(req: AuthRequest, res: Response) {
-    // TODO: Implement token invalidation/blacklisting
+  async logout(req: FirebaseAuthRequest, res: Response) {
+    // TODO: Implement token invalidation/blacklisting if needed
     return ok(res, { message: 'Logged out successfully' });
   }
 
-  async me(req: AuthRequest, res: Response) {
+  async me(req: FirebaseAuthRequest, res: Response) {
     if (!req.user) {
       return unauthorized(res);
     }
