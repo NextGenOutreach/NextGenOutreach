@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { getAdminAuth } from '../lib/firebaseAdmin';
-import { unauthorized } from '../lib/response';
+import { unauthorized, forbidden } from '../lib/response';
 import prisma from '../lib/database';
 
 export interface FirebaseAuthRequest extends Request {
@@ -9,6 +9,7 @@ export interface FirebaseAuthRequest extends Request {
     uid: string;
     email: string;
     role: string;
+    status?: string;
   };
 }
 
@@ -137,7 +138,7 @@ export async function optionalFirebaseAuth(
         uid: decoded.uid,
         email: user.email,
         role: (user.role as string).toLowerCase(),
-      };
+      } as FirebaseAuthRequest['user'];
     }
   } catch {
     // ignore — optional auth

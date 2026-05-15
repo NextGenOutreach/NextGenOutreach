@@ -1,156 +1,38 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-
-interface User {
-  id: string;
-  email: string;
-  role: 'client' | 'rep' | 'admin' | 'super_admin';
-  status: 'pending' | 'active' | 'suspended' | 'banned';
-  createdAt: string;
-  lastLoginAt?: string;
-  profile?: {
-    name?: string;
-    companyName?: string;
-    industry?: string;
-    location?: string;
-    linkedinFollowers?: number;
-    rating?: number;
-    totalReviews?: number;
-  };
-  stats?: {
-    totalCampaigns?: number;
-    totalEarnings?: number;
-    activeCampaigns?: number;
-  };
-}
+import { useState, useEffect, useCallback } from 'react';
+import { fetchAdminUsers, fetchAdminStats, updateUserStatus, updateUserRole, type APIUser, type AdminStats } from '@/lib/api';
 
 export default function AdminUsersPage() {
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<APIUser[]>([]);
+  const [stats, setStats] = useState<AdminStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState<'all' | 'client' | 'rep' | 'admin' | 'super_admin'>('all');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'active' | 'suspended' | 'banned'>('all');
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
 
-  useEffect(() => {
-    // TODO: Fetch real users data from API
-    const fetchUsers = async () => {
-      try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        setUsers([
-          {
-            id: '1',
-            email: 'sarah.johnson@example.com',
-            role: 'rep',
-            status: 'active',
-            createdAt: '2024-01-15',
-            lastLoginAt: '2024-05-13T10:30:00Z',
-            profile: {
-              name: 'Sarah Johnson',
-              industry: 'Technology',
-              location: 'United States',
-              linkedinFollowers: 15000,
-              rating: 4.9,
-              totalReviews: 127
-            },
-            stats: {
-              totalCampaigns: 12,
-              totalEarnings: 8500,
-              activeCampaigns: 2
-            }
-          },
-          {
-            id: '2',
-            email: 'mike.chen@example.com',
-            role: 'rep',
-            status: 'active',
-            createdAt: '2024-01-20',
-            lastLoginAt: '2024-05-13T09:15:00Z',
-            profile: {
-              name: 'Mike Chen',
-              industry: 'Finance',
-              location: 'United Kingdom',
-              linkedinFollowers: 12000,
-              rating: 4.8,
-              totalReviews: 95
-            },
-            stats: {
-              totalCampaigns: 8,
-              totalEarnings: 6200,
-              activeCampaigns: 1
-            }
-          },
-          {
-            id: '3',
-            email: 'techcorp@example.com',
-            role: 'client',
-            status: 'active',
-            createdAt: '2024-01-10',
-            lastLoginAt: '2024-05-13T08:45:00Z',
-            profile: {
-              companyName: 'TechCorp Inc.',
-              industry: 'Technology',
-              location: 'United States'
-            },
-            stats: {
-              totalCampaigns: 5,
-              activeCampaigns: 2
-            }
-          },
-          {
-            id: '4',
-            email: 'finance.hub@example.com',
-            role: 'client',
-            status: 'active',
-            createdAt: '2024-01-25',
-            lastLoginAt: '2024-05-12T16:20:00Z',
-            profile: {
-              companyName: 'FinanceHub',
-              industry: 'Finance',
-              location: 'United Kingdom'
-            },
-            stats: {
-              totalCampaigns: 3,
-              activeCampaigns: 1
-            }
-          },
-          {
-            id: '5',
-            email: 'new.rep@example.com',
-            role: 'rep',
-            status: 'pending',
-            createdAt: '2024-05-13',
-            profile: {
-              name: 'Alex Rodriguez',
-              industry: 'E-commerce',
-              location: 'Spain',
-              linkedinFollowers: 20000
-            }
-          }
-        ]);
-      } catch (error) {
-        console.error('Failed to fetch users:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const load = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const [{ users: data }, statsData] = await Promise.all([
+        fetchAdminUsers({ role: roleFilter, status: statusFilter, search: searchTerm || undefined }),
+        fetchAdminStats(),
+      ]);
+      setUsers(data);
+      setStats(statsData);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load users');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [roleFilter, statusFilter, searchTerm]);
 
-    fetchUsers();
-  }, []);
+  useEffect(() => { load(); }, [load]);
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (user.profile?.name && user.profile.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                         (user.profile?.companyName && user.profile.companyName.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-    const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
-    
-    return matchesSearch && matchesRole && matchesStatus;
-  });
+  const filteredUsers = users;
 
   const STATUS_STYLE: Record<string, { color: string; label: string }> = {
     active:    { color: 'var(--accent-2)', label: 'Active' },
@@ -166,18 +48,28 @@ export default function AdminUsersPage() {
     super_admin: { color: 'var(--accent-1)', icon: '🔧', label: 'Super Admin' },
   };
 
-  const handleStatusChange = (userId: string, newStatus: User['status']) => {
-    // TODO: Implement status change API call
-    setUsers(prev => prev.map(user => 
-      user.id === userId ? { ...user, status: newStatus } : user
-    ));
+  const handleStatusChange = async (userId: string, newStatus: string) => {
+    setActionLoading(userId + ':status');
+    try {
+      const updated = await updateUserStatus(userId, newStatus);
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, status: updated.status } : u));
+    } catch (e) {
+      console.error('Status update failed:', e);
+    } finally {
+      setActionLoading(null);
+    }
   };
 
-  const handleRoleChange = (userId: string, newRole: User['role']) => {
-    // TODO: Implement role change API call
-    setUsers(prev => prev.map(user => 
-      user.id === userId ? { ...user, role: newRole } : user
-    ));
+  const handleRoleChange = async (userId: string, newRole: string) => {
+    setActionLoading(userId + ':role');
+    try {
+      const updated = await updateUserRole(userId, newRole);
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: updated.role } : u));
+    } catch (e) {
+      console.error('Role update failed:', e);
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   if (isLoading) {
@@ -189,6 +81,18 @@ export default function AdminUsersPage() {
             {[...Array(4)].map((_, i) => <div key={i} className="h-24 bg-white/5 rounded-2xl" />)}
           </div>
           {[...Array(4)].map((_, i) => <div key={i} className="h-28 bg-white/5 rounded-2xl" />)}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background p-6 md:p-10 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-4xl mb-3">⚠️</p>
+          <p className="text-white/60 font-bold mb-4">{error}</p>
+          <button onClick={load} className="px-4 py-2 rounded-full border-2 border-accent-1 text-accent-1 text-xs font-black uppercase">Retry</button>
         </div>
       </div>
     );
@@ -213,10 +117,10 @@ export default function AdminUsersPage() {
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {[
-            { label: 'Total users',        value: users.length,                                  color: 'var(--accent-1)' },
-            { label: 'Active',             value: users.filter(u => u.status === 'active').length,  color: 'var(--accent-2)' },
-            { label: 'Pending',            value: users.filter(u => u.status === 'pending').length, color: 'var(--accent-3)' },
-            { label: 'Reps',               value: users.filter(u => u.role === 'rep').length,       color: 'var(--accent-4)' },
+            { label: 'Total users',   value: stats?.totalUsers ?? users.length,                                    color: 'var(--accent-1)' },
+            { label: 'Active',        value: users.filter(u => u.status.toLowerCase() === 'active').length,        color: 'var(--accent-2)' },
+            { label: 'Pending',       value: users.filter(u => u.status.toLowerCase() === 'pending').length,       color: 'var(--accent-3)' },
+            { label: 'Active Camps',  value: stats?.activeCampaigns ?? 0,                                          color: 'var(--accent-4)' },
           ].map((s) => (
             <div key={s.label} className="bg-white/[0.04] border border-white/10 rounded-2xl p-5">
               <p className="text-[11px] font-black uppercase tracking-widest text-white/40 mb-2">{s.label}</p>
@@ -257,9 +161,11 @@ export default function AdminUsersPage() {
         {/* User cards */}
         <div className="space-y-3">
           {filteredUsers.map((user) => {
-            const rs = ROLE_STYLE[user.role] ?? ROLE_STYLE.client;
-            const ss = STATUS_STYLE[user.status] ?? STATUS_STYLE.active;
-            const displayName = user.profile?.name || user.profile?.companyName || user.email;
+            const roleLow = user.role.toLowerCase();
+            const statusLow = user.status.toLowerCase();
+            const rs = ROLE_STYLE[roleLow] ?? ROLE_STYLE.client;
+            const ss = STATUS_STYLE[statusLow] ?? STATUS_STYLE.active;
+            const displayName = user.clientProfile?.companyName || user.email;
             return (
               <div
                 key={user.id}
@@ -286,23 +192,21 @@ export default function AdminUsersPage() {
                       </div>
                       <p className="text-xs font-medium text-white/40">{user.email}</p>
                       <p className="text-xs font-medium text-white/30 mt-0.5">
-                        {[user.profile?.location, user.profile?.industry, `Joined ${new Date(user.createdAt).toLocaleDateString()}`].filter(Boolean).join(' · ')}
-                        {user.lastLoginAt ? ` · Last seen ${new Date(user.lastLoginAt).toLocaleString()}` : ''}
+                        {[user.repProfile?.industry, `Joined ${new Date(user.createdAt).toLocaleDateString()}`].filter(Boolean).join(' · ')}
                       </p>
 
                       {/* Rep stats inline */}
-                      {user.role === 'rep' && (
+                      {roleLow === 'rep' && user.repProfile && (
                         <div className="flex flex-wrap gap-4 mt-2">
-                          {user.profile?.linkedinFollowers && <span className="text-[11px] font-bold text-white/45">{user.profile.linkedinFollowers.toLocaleString()} followers</span>}
-                          {user.profile?.rating && <span className="text-[11px] font-bold text-white/45">{user.profile.rating} ⭐ ({user.profile.totalReviews} reviews)</span>}
-                          {user.stats?.totalEarnings && <span className="text-[11px] font-bold" style={{ color: 'var(--accent-4)' }}>${user.stats.totalEarnings.toLocaleString()} earned</span>}
-                          {user.stats?.totalCampaigns && <span className="text-[11px] font-bold text-white/45">{user.stats.totalCampaigns} campaigns</span>}
+                          <span className="text-[11px] font-bold text-white/45">{user.repProfile.linkedinFollowers.toLocaleString()} followers</span>
+                          <span className="text-[11px] font-bold text-white/45">{Number(user.repProfile.rating).toFixed(1)} ⭐</span>
+                          {user.repProfile.idVerified && <span className="text-[11px] font-bold text-accent-2">✅ ID Verified</span>}
                         </div>
                       )}
-                      {user.role === 'client' && user.stats && (
+                      {roleLow === 'client' && user.clientProfile && (
                         <div className="flex flex-wrap gap-4 mt-2">
-                          <span className="text-[11px] font-bold text-white/45">{user.stats.totalCampaigns || 0} total campaigns</span>
-                          <span className="text-[11px] font-bold" style={{ color: 'var(--accent-2)' }}>{user.stats.activeCampaigns || 0} active</span>
+                          <span className="text-[11px] font-bold text-white/45">{user.clientProfile.plan} plan</span>
+                          <span className="text-[11px] font-bold text-white/45">{user.clientProfile.planStatus}</span>
                         </div>
                       )}
                     </div>
@@ -310,27 +214,30 @@ export default function AdminUsersPage() {
 
                   {/* Actions */}
                   <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-                    {user.status === 'pending' && (
+                    {statusLow === 'pending' && (
                       <button
+                        disabled={actionLoading === user.id + ':status'}
                         onClick={() => handleStatusChange(user.id, 'active')}
                         className="text-[11px] font-black uppercase px-3 py-1.5 rounded-full border-2 transition-colors"
                         style={{ borderColor: 'var(--accent-2)', color: 'var(--accent-2)' }}
                       >
-                        Approve
+                        {actionLoading === user.id + ':status' ? '…' : 'Approve'}
                       </button>
                     )}
-                    {user.status === 'active' && (
+                    {statusLow === 'active' && (
                       <button
+                        disabled={actionLoading === user.id + ':status'}
                         onClick={() => handleStatusChange(user.id, 'suspended')}
                         className="text-[11px] font-black uppercase px-3 py-1.5 rounded-full border-2 transition-colors"
                         style={{ borderColor: 'var(--accent-4)', color: 'var(--accent-4)' }}
                       >
-                        Suspend
+                        {actionLoading === user.id + ':status' ? '…' : 'Suspend'}
                       </button>
                     )}
                     <select
-                      value={user.role}
-                      onChange={(e) => handleRoleChange(user.id, e.target.value as any)}
+                      value={roleLow}
+                      disabled={actionLoading === user.id + ':role'}
+                      onChange={(e) => handleRoleChange(user.id, e.target.value)}
                       className="text-[11px] font-black uppercase bg-white/[0.04] border border-white/10 rounded-full px-3 py-1.5 text-white/60 focus:outline-none focus:border-accent-1/60 cursor-pointer"
                     >
                       <option value="client">Client</option>

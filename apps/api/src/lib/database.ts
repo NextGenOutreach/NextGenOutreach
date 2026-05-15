@@ -73,13 +73,13 @@ const createMockPrismaClient = () => {
   return {
     user: {
       findUnique: async ({ where }: any) => {
-        const user = mockUsers.find(u => u.email === where.email);
+        const user = mockUsers.find(u => u.email === where.email || u.id === where.id);
         return user || null;
       },
       create: async ({ data }: any) => {
         const newUser = {
           ...data,
-          id: 'admin-1',
+          id: `user-${Date.now()}`,
           createdAt: new Date(),
           updatedAt: new Date(),
         };
@@ -93,6 +93,35 @@ const createMockPrismaClient = () => {
         }
         return user || null;
       }
+    },
+    clientProfile: {
+      findUnique: async ({ where }: any) => ({
+        id: 'client-1',
+        userId: where.userId,
+        plan: 'STARTER',
+        planStatus: 'active'
+      }),
+      create: async ({ data }: any) => ({ ...data, id: 'client-1' }),
+    },
+    repProfile: {
+      findUnique: async ({ where }: any) => ({
+        id: 'rep-1',
+        userId: where.userId,
+        idVerified: true,
+        onboardingStep: 7,
+        availabilityStatus: 'available'
+      }),
+      findMany: async () => [],
+      count: async () => 0,
+      create: async ({ data }: any) => ({ ...data, id: 'rep-1' }),
+    },
+    campaign: {
+      count: async () => 0,
+      findMany: async () => [],
+      create: async ({ data }: any) => ({ ...data, id: 'camp-1' }),
+    },
+    campaignActivity: {
+      count: async () => 0,
     },
     $queryRaw: async () => [{ result: 1 }],
     $disconnect: async () => {},

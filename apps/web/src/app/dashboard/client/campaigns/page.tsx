@@ -1,104 +1,55 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-
-interface Campaign {
-  id: string;
-  name: string;
-  status: 'draft' | 'active' | 'paused' | 'completed';
-  type: 'connections' | 'dms' | 'posts' | 'mixed';
-  repName?: string;
-  connectionsSent: number;
-  connectionsAccepted: number;
-  meetingsBooked: number;
-  startDate: string;
-  endDate?: string;
-  dailyLimit: number;
-}
+import { fetchCampaigns, updateCampaignStatus, type APICampaign } from '@/lib/api';
 
 export default function ClientCampaignsPage() {
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [campaigns, setCampaigns] = useState<APICampaign[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'active' | 'draft' | 'completed'>('all');
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  useEffect(() => {
-    // TODO: Fetch real campaign data from API
-    const fetchCampaigns = async () => {
-      try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        setCampaigns([
-          {
-            id: '1',
-            name: 'Tech SaaS Outreach',
-            status: 'active',
-            type: 'mixed',
-            repName: 'Sarah Johnson',
-            connectionsSent: 127,
-            connectionsAccepted: 45,
-            meetingsBooked: 8,
-            startDate: '2024-01-15',
-            dailyLimit: 40
-          },
-          {
-            id: '2',
-            name: 'Finance Companies',
-            status: 'active',
-            type: 'connections',
-            repName: 'Mike Chen',
-            connectionsSent: 89,
-            connectionsAccepted: 32,
-            meetingsBooked: 5,
-            startDate: '2024-01-20',
-            dailyLimit: 30
-          },
-          {
-            id: '3',
-            name: 'Healthcare Startups',
-            status: 'draft',
-            type: 'dms',
-            connectionsSent: 0,
-            connectionsAccepted: 0,
-            meetingsBooked: 0,
-            startDate: new Date().toISOString().split('T')[0],
-            dailyLimit: 25
-          },
-          {
-            id: '4',
-            name: 'E-commerce Leads',
-            status: 'completed',
-            type: 'connections',
-            repName: 'Emily Davis',
-            connectionsSent: 234,
-            connectionsAccepted: 89,
-            meetingsBooked: 15,
-            startDate: '2024-01-01',
-            endDate: '2024-01-31',
-            dailyLimit: 50
-          }
-        ]);
-      } catch (error) {
-        console.error('Failed to fetch campaigns:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchCampaigns();
+  const load = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await fetchCampaigns();
+      setCampaigns(data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load campaigns');
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleStatusChange = async (id: string, newStatus: string) => {
+    setActionLoading(id);
+    try {
+      const updated = await updateCampaignStatus(id, newStatus);
+      setCampaigns(prev => prev.map(c => c.id === id ? { ...c, status: updated.status } : c));
+    } catch (e) {
+      console.error('Status update failed:', e);
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   const filteredCampaigns = campaigns.filter(campaign => {
     if (filter === 'all') return true;
-    return campaign.status === filter;
+    return campaign.status.toLowerCase() === filter;
   });
 
   const STATUS: Record<string, { color: string; label: string }> = {
-    active:    { color: 'var(--accent-2)', label: 'Active' },
-    draft:     { color: 'var(--accent-3)', label: 'Draft' },
-    paused:    { color: 'var(--accent-4)', label: 'Paused' },
-    completed: { color: 'var(--accent-5)', label: 'Done' },
+    active:        { color: 'var(--accent-2)', label: 'Active' },
+    draft:         { color: 'var(--accent-3)', label: 'Draft' },
+    paused:        { color: 'var(--accent-4)', label: 'Paused' },
+    completed:     { color: 'var(--accent-5)', label: 'Done' },
+    pending_match: { color: 'var(--accent-1)', label: 'Matching' },
+    cancelled:     { color: 'rgba(255,80,80,0.8)', label: 'Cancelled' },
   };
 
   const getTypeIcon = (type: string) => {
@@ -117,6 +68,18 @@ export default function ClientCampaignsPage() {
         <div className="max-w-4xl mx-auto animate-pulse space-y-4">
           <div className="h-8 bg-white/5 rounded-xl w-1/3" />
           {[...Array(3)].map((_, i) => <div key={i} className="h-36 bg-white/5 rounded-2xl" />)}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background p-6 md:p-10 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-4xl mb-3">⚠️</p>
+          <p className="text-white/60 font-bold mb-4">{error}</p>
+          <button onClick={load} className="px-4 py-2 rounded-full border-2 border-accent-1 text-accent-1 text-xs font-black uppercase">Retry</button>
         </div>
       </div>
     );
@@ -163,10 +126,7 @@ export default function ClientCampaignsPage() {
         {/* Campaign cards */}
         <div className="space-y-4">
           {filteredCampaigns.map((campaign) => {
-            const ss = STATUS[campaign.status] ?? { color: 'rgba(255,255,255,0.3)', label: campaign.status };
-            const acceptRate = campaign.connectionsSent > 0
-              ? Math.round((campaign.connectionsAccepted / campaign.connectionsSent) * 100)
-              : 0;
+            const ss = STATUS[campaign.status.toLowerCase()] ?? { color: 'rgba(255,255,255,0.3)', label: campaign.status };
             return (
               <div
                 key={campaign.id}
@@ -183,21 +143,30 @@ export default function ClientCampaignsPage() {
                       </span>
                     </div>
                     <p className="text-xs font-medium text-white/45">
-                      {campaign.repName ? `Rep: ${campaign.repName} · ` : ''}
-                      Started {new Date(campaign.startDate).toLocaleDateString()}
-                      {campaign.endDate ? ` · Ended ${new Date(campaign.endDate).toLocaleDateString()}` : ''}
-                      {` · ${campaign.dailyLimit}/day limit`}
+                      {campaign.rep ? `Rep · ${campaign.rep.industry ?? 'SDR'} · ` : ''}
+                      {campaign.startDate ? `Started ${new Date(campaign.startDate).toLocaleDateString()} · ` : ''}
+                      {campaign.endDate ? `Ended ${new Date(campaign.endDate).toLocaleDateString()} · ` : ''}
+                      {`${campaign.dailyLimit}/day limit`}
                     </p>
                   </div>
                   <div className="flex gap-2 shrink-0">
-                    {campaign.status === 'active' && (
-                      <button className="text-[11px] font-black uppercase px-3 py-1.5 rounded-full border-2 transition-colors" style={{ borderColor: 'var(--accent-4)', color: 'var(--accent-4)' }}>
-                        Pause
+                    {campaign.status.toLowerCase() === 'active' && (
+                      <button
+                        disabled={actionLoading === campaign.id}
+                        onClick={() => handleStatusChange(campaign.id, 'paused')}
+                        className="text-[11px] font-black uppercase px-3 py-1.5 rounded-full border-2 transition-colors disabled:opacity-40"
+                        style={{ borderColor: 'var(--accent-4)', color: 'var(--accent-4)' }}
+                      >
+                        {actionLoading === campaign.id ? '…' : 'Pause'}
                       </button>
                     )}
-                    {campaign.status === 'paused' && (
-                      <button className="text-[11px] font-black uppercase px-3 py-1.5 rounded-full border-2 border-accent-2 text-accent-2 transition-colors hover:bg-accent-2/10">
-                        Resume
+                    {campaign.status.toLowerCase() === 'paused' && (
+                      <button
+                        disabled={actionLoading === campaign.id}
+                        onClick={() => handleStatusChange(campaign.id, 'active')}
+                        className="text-[11px] font-black uppercase px-3 py-1.5 rounded-full border-2 border-accent-2 text-accent-2 transition-colors hover:bg-accent-2/10 disabled:opacity-40"
+                      >
+                        {actionLoading === campaign.id ? '…' : 'Resume'}
                       </button>
                     )}
                     <Link
@@ -212,10 +181,10 @@ export default function ClientCampaignsPage() {
                 {/* Metrics */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {[
-                    { label: 'Sent',      value: campaign.connectionsSent,      color: 'var(--accent-1)' },
-                    { label: 'Accepted',  value: campaign.connectionsAccepted,   color: 'var(--accent-2)' },
-                    { label: 'Meetings',  value: campaign.meetingsBooked,        color: 'var(--accent-3)' },
-                    { label: 'Accept %',  value: `${acceptRate}%`,              color: 'var(--accent-4)' },
+                    { label: 'Activities', value: campaign._count?.activities ?? 0, color: 'var(--accent-1)' },
+                    { label: 'Daily Limit', value: campaign.dailyLimit,              color: 'var(--accent-2)' },
+                    { label: 'Rep Rating', value: campaign.rep ? `${Number(campaign.rep.rating).toFixed(1)}★` : '—', color: 'var(--accent-3)' },
+                    { label: 'Type',       value: campaign.type.toLowerCase(),      color: 'var(--accent-4)' },
                   ].map((m) => (
                     <div key={m.label} className="bg-white/[0.04] rounded-xl p-3">
                       <p className="text-[10px] font-black uppercase tracking-widest text-white/35 mb-1">{m.label}</p>

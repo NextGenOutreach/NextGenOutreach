@@ -42,6 +42,7 @@ model RepProfile {
   idVerified          Boolean   @default(false) @map("id_verified")
   idVerifiedAt        DateTime? @map("id_verified_at")
   idDocumentUrl       String?   @map("id_document_url")
+  onboardingStep      Int       @default(1) @map("onboarding_step")
   twoFaConfirmed      Boolean   @default(false) @map("two_fa_confirmed")
   gologinProfileId    String?   @map("gologin_profile_id")
   bitbrowserId        String?   @map("bitbrowser_id")

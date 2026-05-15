@@ -34,27 +34,28 @@ export class AuthController {
       data: {
         email,
         passwordHash,
-        role: role as UserRole,
-        status: 'pending',
+        role: (role?.toUpperCase() || 'CLIENT') as UserRole,
+        status: 'PENDING',
         twoFaEnabled: false
       }
     });
 
     // Create profile based on role
-    if (role === 'client') {
+    if (role?.toLowerCase() === 'client') {
       await prisma.clientProfile.create({
         data: {
           userId: user.id,
-          plan: 'starter',
+          plan: 'STARTER',
           planStatus: 'pending'
         }
       });
-    } else if (role === 'rep') {
+    } else if (role?.toLowerCase() === 'rep') {
       await prisma.repProfile.create({
         data: {
           userId: user.id,
           linkedinUrl: '',
           linkedinFollowers: 0,
+          onboardingStep: 1,
           idVerified: false,
           twoFaConfirmed: false,
           availabilityStatus: 'unavailable',
@@ -99,7 +100,7 @@ export class AuthController {
     }
 
     // Check if user is active
-    if (user.status !== 'active') {
+    if (user.status !== 'ACTIVE') {
       return unauthorized(res, 'Account is not active');
     }
 
@@ -111,7 +112,7 @@ export class AuthController {
 
     // Check 2FA if enabled
     if (user.twoFaEnabled) {
-      const { totpCode }: LoginInput = req.body;
+      const { totpCode } = req.body as LoginInput & { totpCode?: string };
       if (!totpCode) {
         return res.status(200).json({ success: true, data: { twoFaRequired: true } });
       }
@@ -182,7 +183,7 @@ export class AuthController {
     }
 
     // Generate new tokens (if still needed, though Firebase handles this)
-    const payload = { sub: req.user.id, email: req.user.email, role: req.user.role };
+    const payload = { sub: req.user.id, email: req.user.email, role: req.user.role as UserRole };
     const accessToken = signAccessToken(payload);
     const refreshToken = signRefreshToken(payload);
 
