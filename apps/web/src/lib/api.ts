@@ -180,3 +180,51 @@ export async function updateUserRole(id: string, role: string): Promise<APIUser>
   });
   return data;
 }
+
+// ─── Rep Dashboard ────────────────────────────────────────────────────────────
+
+export interface APITask {
+  id: string;
+  campaignId: string;
+  campaignName: string;
+  clientName: string;
+  type: string;
+  status: string;
+  dailyLimit: number;
+  completedCount: number;
+  prospectCount: number;
+  startDate?: string | null;
+  endDate?: string | null;
+  notes?: string | null;
+}
+
+export interface APIEarning {
+  id: string;
+  campaignId: string;
+  campaignName: string;
+  clientName: string;
+  amount: number;
+  currency: string;
+  periodStart: string;
+  periodEnd: string;
+  status: string;
+  paidAt?: string | null;
+  notes?: string | null;
+}
+
+export interface APIMonthlyEarning {
+  month: string;
+  earnings: number;
+  campaigns: number;
+}
+
+export async function fetchRepTasks(): Promise<APITask[]> {
+  const { data } = await request<APITask[]>('/rep/tasks');
+  return data;
+}
+
+export async function fetchRepEarnings(status?: string): Promise<{ earnings: APIEarning[]; monthly: APIMonthlyEarning[] }> {
+  const qs = status && status !== 'all' ? `?status=${status}` : '';
+  const { data } = await request<{ earnings: APIEarning[]; monthly: APIMonthlyEarning[] }>(`/rep/earnings${qs}`);
+  return data;
+}

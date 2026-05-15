@@ -23,6 +23,7 @@ import campaignRoutes from './routes/campaigns';
 import billingRoutes from './routes/billing';
 import analyticsRoutes from './routes/analytics';
 import adminRoutes from './routes/admin';
+import repDashboardRoutes from './routes/rep-dashboard';
 import webhookRoutes from './routes/webhooks';
 import healthRoutes from './routes/health';
 
@@ -116,6 +117,7 @@ apiRouter.use('/campaigns', authMiddleware, campaignRoutes);
 apiRouter.use('/billing', authMiddleware, billingRoutes);
 apiRouter.use('/analytics', authMiddleware, analyticsRoutes);
 apiRouter.use('/admin', authMiddleware, adminRoutes);
+apiRouter.use('/rep', authMiddleware, repDashboardRoutes);
 
 app.use('/api/v1', apiRouter);
 

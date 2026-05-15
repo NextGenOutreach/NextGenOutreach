@@ -1,120 +1,43 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-
-interface Earning {
-  id: string;
-  campaignId: string;
-  campaignName: string;
-  clientName: string;
-  amount: number;
-  currency: string;
-  periodStart: string;
-  periodEnd: string;
-  status: 'pending' | 'processing' | 'paid' | 'failed';
-  paidAt?: string;
-  paymentMethod?: string;
-  notes?: string;
-}
-
-interface MonthlyStats {
-  month: string;
-  earnings: number;
-  campaigns: number;
-  hoursWorked: number;
-}
+import { useState, useEffect, useCallback } from 'react';
+import { fetchRepEarnings, type APIEarning, type APIMonthlyEarning } from '@/lib/api';
 
 export default function RepEarningsPage() {
-  const [earnings, setEarnings] = useState<Earning[]>([]);
-  const [monthlyStats, setMonthlyStats] = useState<MonthlyStats[]>([]);
+  const [earnings, setEarnings] = useState<APIEarning[]>([]);
+  const [monthlyStats, setMonthlyStats] = useState<APIMonthlyEarning[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<'all' | 'pending' | 'paid'>('all');
 
-  useEffect(() => {
-    // TODO: Fetch real earnings data from API
-    const fetchEarnings = async () => {
-      try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        setEarnings([
-          {
-            id: '1',
-            campaignId: '1',
-            campaignName: 'Tech SaaS Outreach',
-            clientName: 'TechCorp Inc.',
-            amount: 850.00,
-            currency: 'USD',
-            periodStart: '2024-01-01',
-            periodEnd: '2024-01-31',
-            status: 'paid',
-            paidAt: '2024-02-05',
-            paymentMethod: 'bank_transfer'
-          },
-          {
-            id: '2',
-            campaignId: '2',
-            campaignName: 'Finance Companies',
-            clientName: 'FinanceHub',
-            amount: 600.00,
-            currency: 'USD',
-            periodStart: '2024-01-01',
-            periodEnd: '2024-01-31',
-            status: 'paid',
-            paidAt: '2024-02-05',
-            paymentMethod: 'bank_transfer'
-          },
-          {
-            id: '3',
-            campaignId: '1',
-            campaignName: 'Tech SaaS Outreach',
-            clientName: 'TechCorp Inc.',
-            amount: 850.00,
-            currency: 'USD',
-            periodStart: '2024-02-01',
-            periodEnd: '2024-02-29',
-            status: 'pending',
-            notes: 'Payment processing - expected by March 5th'
-          },
-          {
-            id: '4',
-            campaignId: '3',
-            campaignName: 'Healthcare Startups',
-            clientName: 'MediTech Solutions',
-            amount: 475.00,
-            currency: 'USD',
-            periodStart: '2024-02-01',
-            periodEnd: '2024-02-29',
-            status: 'processing'
-          }
-        ]);
-
-        setMonthlyStats([
-          { month: '2024-01', earnings: 1450.00, campaigns: 2, hoursWorked: 120 },
-          { month: '2024-02', earnings: 1325.00, campaigns: 2, hoursWorked: 110 },
-          { month: '2023-12', earnings: 980.00, campaigns: 1, hoursWorked: 85 },
-          { month: '2023-11', earnings: 1200.00, campaigns: 2, hoursWorked: 100 }
-        ]);
-      } catch (error) {
-        console.error('Failed to fetch earnings:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchEarnings();
+  const load = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const { earnings: rows, monthly } = await fetchRepEarnings();
+      setEarnings(rows);
+      setMonthlyStats(monthly);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load earnings');
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
-  const filteredEarnings = earnings.filter(earning => {
+  useEffect(() => { load(); }, [load]);
+
+  const filteredEarnings = earnings.filter(e => {
     if (selectedPeriod === 'all') return true;
-    return earning.status === selectedPeriod;
+    const s = e.status.toLowerCase();
+    if (selectedPeriod === 'pending') return s === 'pending' || s === 'processing';
+    return s === selectedPeriod;
   });
 
-  const totalEarnings = filteredEarnings.reduce((sum, earning) => sum + earning.amount, 0);
-  const pendingEarnings = filteredEarnings.filter(e => e.status === 'pending' || e.status === 'processing')
-    .reduce((sum, earning) => sum + earning.amount, 0);
-  const paidEarnings = filteredEarnings.filter(e => e.status === 'paid')
-    .reduce((sum, earning) => sum + earning.amount, 0);
+  const totalEarnings = earnings.reduce((sum, e) => sum + e.amount, 0);
+  const pendingEarnings = earnings.filter(e => e.status.toLowerCase() === 'pending' || e.status.toLowerCase() === 'processing')
+    .reduce((sum, e) => sum + e.amount, 0);
+  const paidEarnings = earnings.filter(e => e.status.toLowerCase() === 'paid')
+    .reduce((sum, e) => sum + e.amount, 0);
 
   const STATUS_STYLE: Record<string, { color: string; label: string }> = {
     paid:       { color: 'var(--accent-4)', label: 'Paid' },
@@ -130,6 +53,18 @@ export default function RepEarningsPage() {
   };
 
   const maxEarnings = Math.max(...monthlyStats.map(s => s.earnings), 1);
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background p-6 md:p-10 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-4xl mb-3">⚠️</p>
+          <p className="text-white/60 font-bold mb-4">{error}</p>
+          <button onClick={load} className="px-4 py-2 rounded-full border-2 border-accent-1 text-accent-1 text-xs font-black uppercase">Retry</button>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -187,8 +122,8 @@ export default function RepEarningsPage() {
                       {new Date(stat.month + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                     </span>
                     <div className="flex items-center gap-4">
-                      <span className="text-[11px] text-white/35">{stat.campaigns} campaigns · {stat.hoursWorked}h · ${(stat.earnings / stat.hoursWorked).toFixed(0)}/hr</span>
-                      <span className="text-sm font-black" style={{ color: barColor }}>${stat.earnings.toLocaleString()}</span>
+                      <span className="text-[11px] text-white/35">{stat.campaigns} campaign{stat.campaigns !== 1 ? 's' : ''}</span>
+                      <span className="text-sm font-black" style={{ color: barColor }}>${Number(stat.earnings).toLocaleString()}</span>
                     </div>
                   </div>
                   <div className="h-2 rounded-full bg-white/10 overflow-hidden">
@@ -221,7 +156,7 @@ export default function RepEarningsPage() {
         {/* Earnings list */}
         <div className="space-y-3">
           {filteredEarnings.map((earning) => {
-            const ss = STATUS_STYLE[earning.status] ?? STATUS_STYLE.pending;
+            const ss = STATUS_STYLE[earning.status.toLowerCase()] ?? STATUS_STYLE.pending;
             return (
               <div
                 key={earning.id}
@@ -234,11 +169,6 @@ export default function RepEarningsPage() {
                     <span className="text-[10px] font-black px-2 py-0.5 rounded-full border" style={{ color: ss.color, borderColor: ss.color + '50', background: ss.color + '15' }}>
                       {ss.label}
                     </span>
-                    {earning.paymentMethod && (
-                      <span className="text-[10px] text-white/35 font-bold">
-                        {METHOD_ICON[earning.paymentMethod] ?? '💰'} {earning.paymentMethod.replace('_', ' ')}
-                      </span>
-                    )}
                   </div>
                   <p className="text-xs font-medium text-white/45">
                     {earning.clientName} · {new Date(earning.periodStart).toLocaleDateString()} – {new Date(earning.periodEnd).toLocaleDateString()}
@@ -247,7 +177,7 @@ export default function RepEarningsPage() {
                   {earning.notes && <p className="text-xs italic text-white/30 mt-1">{earning.notes}</p>}
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-xl font-black" style={{ color: ss.color }}>${earning.amount.toLocaleString()}</p>
+                  <p className="text-xl font-black" style={{ color: ss.color }}>${Number(earning.amount).toLocaleString()}</p>
                   <p className="text-[11px] font-bold text-white/30">{earning.currency}</p>
                 </div>
               </div>
