@@ -76,21 +76,22 @@ The Express API (`apps/api/`) needs to be live before real dashboard data shows.
 
 ---
 
-## 🔗 7. API Integration (post-backend-launch)
+## 🔗 7. API Integration — ✅ COMPLETE
 
-All dashboard pages currently show **mock data**. Once the backend is live, wire up these endpoints:
+All dashboard pages are now wired to real API endpoints. No mock data remains in the primary pages.
 
-| Page | Endpoint |
-|---|---|
-| Rep Tasks | `GET /api/v1/tasks` |
-| Rep Earnings | `GET /api/v1/earnings` |
-| Client Campaigns | `GET /api/v1/campaigns` |
-| Campaign Create | `POST /api/v1/campaigns` |
-| Admin Users | `GET /api/v1/admin/users` |
-| Lead Vault | `GET /api/v1/leads` |
-| Missions | `GET /api/v1/missions` |
-| Agents | `GET /api/v1/agents` |
-| Client Marketplace | `GET /api/v1/reps` (public) |
+| Page | Endpoint | Status |
+|---|---|---|
+| Client Campaigns | `GET /api/v1/campaigns` | ✅ Live |
+| Campaign Create | `POST /api/v1/campaigns` | ✅ Live |
+| Campaign Pause/Resume | `PATCH /api/v1/campaigns/:id/status` | ✅ Live |
+| Client Marketplace | `GET /api/v1/reps` | ✅ Live |
+| Admin Users | `GET /api/v1/admin/users` | ✅ Live |
+| Admin Stats | `GET /api/v1/admin/stats` | ✅ Live |
+| Rep Tasks | `GET /api/v1/rep/tasks` | ✅ Live |
+| Rep Earnings | `GET /api/v1/rep/earnings` | ✅ Live |
+| Lead Vault | `GET /api/v1/leads` | ⏳ Future sprint |
+| Missions / Agents | — | ⏳ Future sprint |
 
 ---
 
