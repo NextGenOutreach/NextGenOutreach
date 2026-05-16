@@ -161,20 +161,18 @@ export class AuthController {
     try {
       const adminAuth = getAdminAuth();
       const decoded = await adminAuth.verifyIdToken(idToken);
-      const email = decoded.email || '';
-      console.log('[sync-claims] email from token:', email);
+      const email = (decoded.email || '').toLowerCase().trim();
 
-      // Check database for user role first
-      const dbUser = await prisma.user.findUnique({
-        where: { email }
+      // Check database for user role (case-insensitive)
+      const dbUser = await prisma.user.findFirst({
+        where: {
+          email: { equals: email, mode: 'insensitive' }
+        }
       });
-      console.log('[sync-claims] dbUser:', dbUser ? { email: dbUser.email, role: dbUser.role } : null);
 
-      if (dbUser?.role) {
-        // Sync database role to Firebase claims
+      if (dbUser) {
         await adminAuth.setCustomUserClaims(decoded.uid, { role: dbUser.role.toLowerCase() });
-        console.log('[sync-claims] returning DB role:', dbUser.role.toLowerCase());
-        return ok(res, { role: dbUser.role.toLowerCase() });
+        return ok(res, { role: dbUser.role.toLowerCase(), _dbEmail: dbUser.email, _tokenEmail: email });
       }
 
       // Fallback to existing Firebase claims
@@ -182,25 +180,14 @@ export class AuthController {
       const existingRole = (userRecord.customClaims as { role?: string } | null)?.role;
 
       if (existingRole) {
-        return ok(res, { role: existingRole });
+        return ok(res, { role: existingRole, _dbEmail: null, _tokenEmail: email });
       }
 
       // Default role assignment for new users
       const assignedRole = role === 'rep' ? 'rep' : 'client';
       await adminAuth.setCustomUserClaims(decoded.uid, { role: assignedRole });
 
-      // Create user in database
-      await prisma.user.create({
-        data: {
-          email,
-          passwordHash: '', // Firebase handles auth
-          role: assignedRole.toUpperCase() as UserRole,
-          status: 'PENDING',
-          twoFaEnabled: false
-        }
-      });
-
-      return ok(res, { role: assignedRole });
+      return ok(res, { role: assignedRole, _dbEmail: null, _tokenEmail: email });
     } catch {
       return unauthorized(res, 'Invalid or expired Firebase token');
     }
