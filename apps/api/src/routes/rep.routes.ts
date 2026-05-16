@@ -10,9 +10,22 @@ router.get('/', ctrl.listReps);
 router.get('/:id', ctrl.getRepById);
 
 // Protected rep endpoints
-router.post('/profile', requireRole('rep'), async (req, res) => {
-  // TODO: Implement profile update
-  res.json({ success: true, data: { message: 'Rep profile endpoint - to be implemented' } });
+router.patch('/profile', requireRole('rep'), async (req: FirebaseAuthRequest, res) => {
+  const { linkedinUrl, industry, bio, locationCountry, locationCity, availabilityStatus } = req.body;
+  
+  const updated = await prisma.repProfile.update({
+    where: { userId: req.user!.id },
+    data: {
+      ...(linkedinUrl !== undefined && { linkedinUrl }),
+      ...(industry !== undefined && { industry }),
+      ...(bio !== undefined && { bio }),
+      ...(locationCountry !== undefined && { locationCountry }),
+      ...(locationCity !== undefined && { locationCity }),
+      ...(availabilityStatus !== undefined && { availabilityStatus }),
+    }
+  });
+
+  res.json({ success: true, data: updated });
 });
 
 router.post('/onboarding', requireRole('rep'), async (req, res) => {

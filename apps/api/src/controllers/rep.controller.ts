@@ -34,8 +34,9 @@ export class RepController {
           : { rating: 'desc' },
         skip: (Number(page) - 1) * Number(limit),
         take: Number(limit),
-        select: {
+          select: {
           id: true,
+          linkedinUrl: true,
           linkedinFollowers: true,
           industry: true,
           locationCountry: true,
@@ -80,6 +81,7 @@ export class RepController {
       where: { id },
       select: {
         id: true,
+        linkedinUrl: true,
         linkedinFollowers: true,
         industry: true,
         locationCountry: true,

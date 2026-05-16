@@ -1,15 +1,37 @@
 "use client";
 
+import { useState, useEffect } from 'react';
 import { MetricCard } from "@/components/MetricCard";
-
-const mockAgents = [
-  { name: "Rep Alpha", niche: "SaaS / Fintech", acceptance: "42%", replies: "12%", status: "Active", missions: 4, color: "var(--accent-1)" },
-  { name: "Rep Beta", niche: "E-commerce", acceptance: "38%", replies: "9%", status: "Active", missions: 2, color: "var(--accent-2)" },
-  { name: "Rep Gamma", niche: "Professional Services", acceptance: "51%", replies: "15%", status: "Warning", missions: 5, color: "var(--accent-3)" },
-  { name: "Rep Delta", niche: "HealthTech", acceptance: "29%", replies: "4%", status: "Inactive", missions: 0, color: "var(--accent-4)" },
-];
+import { fetchAdminReps, type AdminRep } from '@/lib/api';
 
 export default function RepIntelligencePage() {
+  const [reps, setReps] = useState<AdminRep[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchAdminReps()
+      .then(setReps)
+      .catch(console.error)
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  const avgAcceptance = reps.length > 0 
+    ? (reps.reduce((acc, r) => acc + r.stats.acceptanceRate, 0) / reps.length).toFixed(1)
+    : "0";
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background p-6 md:p-10">
+        <div className="max-w-5xl mx-auto animate-pulse space-y-4">
+          <div className="h-8 bg-white/5 rounded-xl w-1/3" />
+          <div className="grid grid-cols-3 gap-6">
+            {[...Array(3)].map((_, i) => <div key={i} className="h-24 bg-white/5 rounded-xl" />)}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background p-6 md:p-10">
       <div className="max-w-5xl mx-auto space-y-12">
@@ -23,47 +45,47 @@ export default function RepIntelligencePage() {
 
         {/* Global Rep Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <MetricCard label="Squad Strength" value="12 Reps" trend="↑ 1" accentColor="var(--accent-1)" />
-          <MetricCard label="Avg Acceptance" value="38.4%" trend="↑ 2.1%" accentColor="var(--accent-2)" />
-          <MetricCard label="Avg Reply Rate" value="11.2%" trend="↓ 0.5%" accentColor="var(--accent-4)" />
+          <MetricCard label="Squad Strength" value={`${reps.length} Reps`} trend="↑ 1" accentColor="var(--accent-1)" />
+          <MetricCard label="Avg Acceptance" value={`${avgAcceptance}%`} trend="↑ 2.1%" accentColor="var(--accent-2)" />
+          <MetricCard label="Total Meetings" value={reps.reduce((acc, r) => acc + r.stats.meetingsBooked, 0).toString()} trend="↓ 0.5%" accentColor="var(--accent-4)" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-          {mockAgents.map((agent, i) => (
+          {reps.map((rep, i) => (
             <div 
-              key={agent.name} 
+              key={rep.id} 
               className="max-section p-8"
               style={{ 
-                borderColor: agent.color,
+                borderColor: `var(--accent-${(i % 5) + 1})`,
                 transform: i % 2 === 0 ? "rotate(0.5deg)" : "rotate(-0.5deg)",
               }}
             >
               <div className="flex justify-between items-start mb-8">
                 <div>
-                  <h3 className="text-3xl font-black uppercase tracking-tighter mb-1 text-white">{agent.name}</h3>
-                  <p className="text-xs font-bold uppercase tracking-widest text-white/40">{agent.niche}</p>
+                  <h3 className="text-3xl font-black uppercase tracking-tighter mb-1 text-white">{rep.user.email.split('@')[0]}</h3>
+                  <p className="text-xs font-bold uppercase tracking-widest text-white/40">{rep.industry || 'Generalist'}</p>
                 </div>
                 <span className={`px-4 py-1 rounded-full border-2 text-[10px] font-black uppercase tracking-widest ${
-                  agent.status === "Active" ? "border-accent-2 text-accent-2 bg-accent-2/10" : 
-                  agent.status === "Warning" ? "border-accent-3 text-accent-3 bg-accent-3/10" : 
+                  rep.user.status === "ACTIVE" ? "border-accent-2 text-accent-2 bg-accent-2/10" : 
+                  rep.user.status === "PENDING" ? "border-accent-3 text-accent-3 bg-accent-3/10" : 
                   "border-white/20 text-white/20"
                 }`}>
-                  {agent.status}
+                  {rep.user.status}
                 </span>
               </div>
 
               <div className="grid grid-cols-3 gap-4 mb-8">
                 <div className="bg-white/5 border-2 border-dashed border-white/10 p-4 rounded-xl text-center">
                   <p className="text-[10px] font-black uppercase text-white/40 mb-1">Acceptance</p>
-                  <p className="text-xl font-black text-white">{agent.acceptance}</p>
+                  <p className="text-xl font-black text-white">{rep.stats.acceptanceRate}%</p>
                 </div>
                 <div className="bg-white/5 border-2 border-dashed border-white/10 p-4 rounded-xl text-center">
-                  <p className="text-[10px] font-black uppercase text-white/40 mb-1">Replies</p>
-                  <p className="text-xl font-black text-white">{agent.replies}</p>
+                  <p className="text-[10px] font-black uppercase text-white/40 mb-1">Meetings</p>
+                  <p className="text-xl font-black text-white">{rep.stats.meetingsBooked}</p>
                 </div>
                 <div className="bg-white/5 border-2 border-dashed border-white/10 p-4 rounded-xl text-center">
                   <p className="text-[10px] font-black uppercase text-white/40 mb-1">Missions</p>
-                  <p className="text-xl font-black text-white">{agent.missions}</p>
+                  <p className="text-xl font-black text-white">{rep._count.campaigns}</p>
                 </div>
               </div>
 

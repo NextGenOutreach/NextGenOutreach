@@ -42,18 +42,21 @@ export interface APICampaign {
   status: string;
   type: string;
   dailyLimit: number;
-  notes?: string;
-  startDate?: string;
-  endDate?: string;
+  startDate: string | null;
+  endDate: string | null;
+  notes: string | null;
   createdAt: string;
-  rep?: { id: string; linkedinFollowers: number; industry?: string; rating: number } | null;
-  _count?: { activities: number };
+  rep: { id: string; industry: string | null; rating: string; linkedinFollowers: number } | null;
+  _count: { activities: number };
 }
 
-export async function fetchCampaigns(status?: string): Promise<APICampaign[]> {
-  const qs = status && status !== 'all' ? `?status=${status}` : '';
-  const { data } = await request<APICampaign[]>(`/campaigns${qs}`);
-  return data;
+export async function fetchCampaigns(params?: { status?: string; page?: number }): Promise<{ campaigns: APICampaign[]; total: number }> {
+  const qs = new URLSearchParams();
+  if (params?.status && params.status !== 'all') qs.set('status', params.status);
+  if (params?.page) qs.set('page', String(params.page));
+  const query = qs.toString() ? `?${qs.toString()}` : '';
+  const { data, meta } = await request<APICampaign[]>(`/campaigns${query}`);
+  return { campaigns: data, total: (meta as any)?.total ?? data.length };
 }
 
 export async function createCampaign(body: {
@@ -82,6 +85,7 @@ export async function updateCampaignStatus(id: string, status: string): Promise<
 
 export interface APIRep {
   id: string;
+  linkedinUrl: string;
   linkedinFollowers: number;
   industry?: string;
   locationCountry?: string;
@@ -181,6 +185,96 @@ export async function updateUserRole(id: string, role: string): Promise<APIUser>
   return data;
 }
 
+export async function verifyRepId(userId: string, verified: boolean): Promise<any> {
+  const { data } = await request<any>(`/admin/users/${userId}/verify-id`, {
+    method: 'PATCH',
+    body: JSON.stringify({ verified }),
+  });
+  return data;
+}
+
+export async function payEarning(id: string): Promise<any> {
+  const { data } = await request<any>(`/admin/earnings/${id}/pay`, {
+    method: 'PATCH'
+  });
+  return data;
+}
+
+// ─── Admin Extended ───────────────────────────────────────────────────────────
+
+export interface AdminActivity {
+  type: string;
+  label: string;
+  time: string;
+}
+
+export interface AdminLead {
+  id: string;
+  activityType: string;
+  prospectName: string | null;
+  prospectUrl: string | null;
+  notes: string | null;
+  occurredAt: string;
+  campaign: {
+    id: string;
+    name: string;
+    rep: { id: string; industry: string | null; user: { email: string } } | null;
+  };
+}
+
+export interface AdminRep {
+  id: string;
+  linkedinUrl: string;
+  industry: string | null;
+  availabilityStatus: string;
+  idVerified: boolean;
+  rating: string;
+  linkedinFollowers: number;
+  user: { email: string; status: string; createdAt: string };
+  _count: { campaigns: number; earnings: number };
+  stats: { connectionsSent: number; acceptanceRate: number; meetingsBooked: number };
+}
+
+export interface AdminEarning {
+  id: string;
+  amountUsd: number;
+  periodStart: string;
+  periodEnd: string;
+  status: string;
+  createdAt: string;
+  rep: { id: string; user: { email: string } };
+  client: { id: string; companyName: string | null };
+  campaign: { id: string; name: string };
+}
+
+export async function fetchAdminActivity(): Promise<AdminActivity[]> {
+  const { data } = await request<AdminActivity[]>('/admin/activity');
+  return data;
+}
+
+export async function fetchAdminLeads(params?: { page?: number; type?: string }): Promise<{ leads: AdminLead[]; total: number }> {
+  const qs = new URLSearchParams();
+  if (params?.page) qs.set('page', String(params.page));
+  if (params?.type) qs.set('type', params.type);
+  const query = qs.toString() ? `?${qs.toString()}` : '';
+  const { data, meta } = await request<AdminLead[]>(`/admin/leads${query}`);
+  return { leads: data, total: (meta as any)?.total ?? data.length };
+}
+
+export async function fetchAdminReps(): Promise<AdminRep[]> {
+  const { data } = await request<AdminRep[]>('/admin/reps');
+  return data;
+}
+
+export async function fetchAdminEarnings(params?: { page?: number; status?: string }): Promise<{ earnings: AdminEarning[]; total: number }> {
+  const qs = new URLSearchParams();
+  if (params?.page) qs.set('page', String(params.page));
+  if (params?.status) qs.set('status', params.status);
+  const query = qs.toString() ? `?${qs.toString()}` : '';
+  const { data, meta } = await request<AdminEarning[]>(`/admin/earnings${query}`);
+  return { earnings: data, total: (meta as any)?.total ?? data.length };
+}
+
 // ─── Rep Dashboard ────────────────────────────────────────────────────────────
 
 export interface APITask {
@@ -196,6 +290,19 @@ export interface APITask {
   startDate?: string | null;
   endDate?: string | null;
   notes?: string | null;
+  technicalStatus: string;
+}
+
+export interface AdminAlert {
+  campaignId: string;
+  campaignName: string;
+  lastActivity: string | null;
+  issue: string;
+}
+
+export async function fetchAdminRedAlerts(): Promise<AdminAlert[]> {
+  const { data } = await request<AdminAlert[]>('/admin/alerts');
+  return data;
 }
 
 export interface APIEarning {

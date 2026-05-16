@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { fetchAdminUsers, fetchAdminStats, updateUserStatus, updateUserRole, type APIUser, type AdminStats } from '@/lib/api';
+import { fetchAdminUsers, fetchAdminStats, updateUserStatus, updateUserRole, verifyRepId, type APIUser, type AdminStats } from '@/lib/api';
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<APIUser[]>([]);
@@ -55,6 +55,23 @@ export default function AdminUsersPage() {
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, status: updated.status } : u));
     } catch (e) {
       console.error('Status update failed:', e);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleVerifyId = async (userId: string, currentVerified: boolean) => {
+    setActionLoading(userId + ':verify');
+    try {
+      await verifyRepId(userId, !currentVerified);
+      setUsers(prev => prev.map(u => {
+        if (u.id === userId && u.repProfile) {
+          return { ...u, repProfile: { ...u.repProfile, idVerified: !currentVerified } };
+        }
+        return u;
+      }));
+    } catch (e) {
+      console.error('ID verification failed:', e);
     } finally {
       setActionLoading(null);
     }
@@ -200,7 +217,11 @@ export default function AdminUsersPage() {
                         <div className="flex flex-wrap gap-4 mt-2">
                           <span className="text-[11px] font-bold text-white/45">{user.repProfile.linkedinFollowers.toLocaleString()} followers</span>
                           <span className="text-[11px] font-bold text-white/45">{Number(user.repProfile.rating).toFixed(1)} ⭐</span>
-                          {user.repProfile.idVerified && <span className="text-[11px] font-bold text-accent-2">✅ ID Verified</span>}
+                          {user.repProfile.idVerified ? (
+                            <span className="text-[11px] font-bold text-accent-2">✅ ID Verified</span>
+                          ) : (
+                            <span className="text-[11px] font-bold text-white/20">❌ ID Pending</span>
+                          )}
                         </div>
                       )}
                       {roleLow === 'client' && user.clientProfile && (
@@ -214,6 +235,19 @@ export default function AdminUsersPage() {
 
                   {/* Actions */}
                   <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                    {roleLow === 'rep' && user.repProfile && (
+                      <button
+                        disabled={actionLoading === user.id + ':verify'}
+                        onClick={() => handleVerifyId(user.id, user.repProfile!.idVerified)}
+                        className={`text-[11px] font-black uppercase px-3 py-1.5 rounded-full border-2 transition-all ${
+                          user.repProfile.idVerified 
+                            ? 'border-accent-4/40 text-accent-4 hover:bg-accent-4/10' 
+                            : 'border-accent-1 text-accent-1 hover:bg-accent-1/10'
+                        }`}
+                      >
+                        {actionLoading === user.id + ':verify' ? '…' : user.repProfile.idVerified ? 'Revoke ID' : 'Approve ID'}
+                      </button>
+                    )}
                     {statusLow === 'pending' && (
                       <button
                         disabled={actionLoading === user.id + ':status'}

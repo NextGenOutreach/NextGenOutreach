@@ -19,6 +19,7 @@ router.get('/tasks', requireRole('rep'), async (req: FirebaseAuthRequest, res: R
       client: {
         include: { user: { select: { email: true } } },
       },
+      browserSessions: { orderBy: { lastActiveAt: 'desc' }, take: 1 },
       _count: { select: { activities: true } },
     },
   });
@@ -36,6 +37,7 @@ router.get('/tasks', requireRole('rep'), async (req: FirebaseAuthRequest, res: R
     startDate: c.startDate,
     endDate: c.endDate,
     notes: c.notes ?? null,
+    technicalStatus: c.browserSessions[0]?.status || 'IDLE',
   }));
 
   return ok(res, tasks);

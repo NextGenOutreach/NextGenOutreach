@@ -131,7 +131,14 @@ export default function ClientMarketplacePage() {
                   <div className="flex items-center gap-3">
                     <span className="text-3xl">👤</span>
                     <div>
-                      <h3 className="text-sm font-black text-white">{rep.industry ?? 'Outreach Rep'}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-black text-white">{rep.industry ?? 'Outreach Rep'}</h3>
+                        {rep.linkedinUrl && (
+                          <a href={rep.linkedinUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-accent-1 hover:underline">
+                            LinkedIn ↗
+                          </a>
+                        )}
+                      </div>
                       <p className="text-xs font-medium text-white/45">{location}</p>
                     </div>
                   </div>

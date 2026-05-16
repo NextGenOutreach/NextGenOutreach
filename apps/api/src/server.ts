@@ -26,6 +26,7 @@ import adminRoutes from './routes/admin';
 import repDashboardRoutes from './routes/rep-dashboard';
 import webhookRoutes from './routes/webhooks';
 import healthRoutes from './routes/health';
+import { startCronJobs } from './lib/cron';
 
 // Load environment variables
 dotenv.config();
@@ -109,6 +110,20 @@ const apiRouter = express.Router();
 apiRouter.use('/auth', authRateLimit, accountLockout, recordFailedLogin, clearFailedLogin, authRoutes);
 apiRouter.use('/webhooks', webhookRoutes);
 
+// Intercept campaign activity creation for real-time notifications
+apiRouter.post('/campaigns/:id/activity', authMiddleware, asyncHandler(async (req, res, next) => {
+  const { activityType, prospectName } = req.body;
+  if (activityType === 'MEETING_BOOKED') {
+    io.to(`campaign_${req.params.id}`).emit('new_lead', {
+      type: 'MEETING_BOOKED',
+      prospectName,
+      campaignId: req.params.id,
+      timestamp: new Date()
+    });
+  }
+  next();
+}));
+
 // Protected routes (auth required)
 apiRouter.use('/users', authMiddleware, userRoutes);
 apiRouter.use('/reps', authMiddleware, repRoutes);
@@ -167,6 +182,7 @@ server.listen(PORT, () => {
   console.log(`🚀 NextGenOutreach API server running on port ${PORT}`);
   console.log(`📊 Health check available at http://localhost:${PORT}/health`);
   console.log(`🔌 Socket.IO server ready`);
+  startCronJobs();
 });
 
 export default app;
