@@ -161,6 +161,20 @@ export class AuthController {
     try {
       const adminAuth = getAdminAuth();
       const decoded = await adminAuth.verifyIdToken(idToken);
+      const email = decoded.email || '';
+
+      // Check database for user role first
+      const dbUser = await prisma.user.findUnique({
+        where: { email }
+      });
+
+      if (dbUser?.role) {
+        // Sync database role to Firebase claims
+        await adminAuth.setCustomUserClaims(decoded.uid, { role: dbUser.role.toLowerCase() });
+        return ok(res, { role: dbUser.role.toLowerCase() });
+      }
+
+      // Fallback to existing Firebase claims
       const userRecord = await adminAuth.getUser(decoded.uid);
       const existingRole = (userRecord.customClaims as { role?: string } | null)?.role;
 
@@ -168,8 +182,20 @@ export class AuthController {
         return ok(res, { role: existingRole });
       }
 
+      // Default role assignment for new users
       const assignedRole = role === 'rep' ? 'rep' : 'client';
       await adminAuth.setCustomUserClaims(decoded.uid, { role: assignedRole });
+
+      // Create user in database
+      await prisma.user.create({
+        data: {
+          email,
+          passwordHash: '', // Firebase handles auth
+          role: assignedRole.toUpperCase() as UserRole,
+          status: 'PENDING',
+          twoFaEnabled: false
+        }
+      });
 
       return ok(res, { role: assignedRole });
     } catch {
