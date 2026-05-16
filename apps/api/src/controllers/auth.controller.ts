@@ -162,15 +162,18 @@ export class AuthController {
       const adminAuth = getAdminAuth();
       const decoded = await adminAuth.verifyIdToken(idToken);
       const email = decoded.email || '';
+      console.log('[sync-claims] email from token:', email);
 
       // Check database for user role first
       const dbUser = await prisma.user.findUnique({
         where: { email }
       });
+      console.log('[sync-claims] dbUser:', dbUser ? { email: dbUser.email, role: dbUser.role } : null);
 
       if (dbUser?.role) {
         // Sync database role to Firebase claims
         await adminAuth.setCustomUserClaims(decoded.uid, { role: dbUser.role.toLowerCase() });
+        console.log('[sync-claims] returning DB role:', dbUser.role.toLowerCase());
         return ok(res, { role: dbUser.role.toLowerCase() });
       }
 
