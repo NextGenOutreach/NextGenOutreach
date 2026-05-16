@@ -5,7 +5,7 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "prebuild": "cd ../.. && npm run build --workspace=packages/types && npm run build --workspace=packages/validators",
+    "prebuild": "cd ../.. && npm run build --workspace=packages/types && npm run build --workspace=packages/validators && npx prisma generate --schema=apps/api/prisma/schema.prisma",
     "build": "tsc",
     "start": "node dist/server.js",
     "lint": "eslint src --ext .ts",
