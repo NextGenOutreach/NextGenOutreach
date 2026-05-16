@@ -1,0 +1,9 @@
+[phases.build]
+cmds = [
+  "npm run build --workspace=packages/types",
+  "npm run build --workspace=packages/validators",
+  "npm run build --workspace=apps/api"
+]
+
+[start]
+cmd = "node apps/api/dist/server.js"
