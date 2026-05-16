@@ -7,3 +7,4 @@ cmds = [
 
 [start]
 cmd = "node apps/api/dist/server.js"
+
