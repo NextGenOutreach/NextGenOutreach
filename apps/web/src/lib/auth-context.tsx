@@ -37,11 +37,7 @@ async function resolveUserRole(firebaseUser: User, registrationRole?: UserRole):
   if (!API_URL) return registrationRole ?? "client";
   
   try {
-    const tokenResult = await getIdTokenResult(firebaseUser);
-    if (tokenResult.claims.role) {
-      return tokenResult.claims.role as UserRole;
-    }
-
+    const tokenResult = await getIdTokenResult(firebaseUser, true); // force refresh
     const idToken = tokenResult.token;
     const response = await fetch(`${API_URL}/api/v1/auth/sync-claims`, {
       method: "POST",
