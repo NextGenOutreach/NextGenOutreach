@@ -183,16 +183,47 @@ export class AuthController {
       // Fallback to existing Firebase claims
       const userRecord = await adminAuth.getUser(decoded.uid);
       const existingRole = (userRecord.customClaims as { role?: string } | null)?.role;
+      const assignedRole = existingRole === 'rep' || role === 'rep' ? 'rep' : 'client';
+      const prismaRole = assignedRole === 'rep' ? 'REP' : 'CLIENT';
 
-      if (existingRole) {
-        return ok(res, { role: existingRole, _dbEmail: null, _tokenEmail: email });
+      const createdUser = await prisma.user.create({
+        data: {
+          email,
+          passwordHash: `firebase:${decoded.uid}`,
+          role: prismaRole as any,
+          status: 'ACTIVE' as any,
+          twoFaEnabled: false,
+        },
+      });
+
+      if (assignedRole === 'rep') {
+        await prisma.repProfile.create({
+          data: {
+            userId: createdUser.id,
+            linkedinUrl: '',
+            linkedinFollowers: 0,
+            onboardingStep: 1,
+            idVerified: false,
+            twoFaConfirmed: false,
+            availabilityStatus: 'unavailable',
+            maxClients: 3,
+            rating: 0,
+            totalReviews: 0,
+          },
+        });
+      } else {
+        await prisma.clientProfile.create({
+          data: {
+            userId: createdUser.id,
+            plan: 'STARTER' as any,
+            planStatus: 'inactive',
+          },
+        });
       }
 
-      // Default role assignment for new users
-      const assignedRole = role === 'rep' ? 'rep' : 'client';
       await adminAuth.setCustomUserClaims(decoded.uid, { role: assignedRole });
 
-      return ok(res, { role: assignedRole, _dbEmail: null, _tokenEmail: email });
+      return ok(res, { role: assignedRole, _dbEmail: createdUser.email, _tokenEmail: email });
     } catch {
       return unauthorized(res, 'Invalid or expired Firebase token');
     }
