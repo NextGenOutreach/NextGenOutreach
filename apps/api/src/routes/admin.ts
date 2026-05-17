@@ -3,6 +3,17 @@ import { asyncHandler } from '../middleware/asyncHandler';
 import { ok, badRequest, forbidden } from '../lib/response';
 import { FirebaseAuthRequest } from '../middleware/firebaseAuth.middleware';
 import { calculateMatchScore } from '../services/matching.service';
+import prisma from '../lib/database';
+
+const router = express.Router();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN ROUTES — All require admin/super_admin role
+// ─────────────────────────────────────────────────────────────────────────────
+
+function isAdmin(user?: FirebaseAuthRequest['user']) {
+  return user?.role === 'admin' || user?.role === 'super_admin';
+}
 
 // GET /api/v1/admin/campaigns — list all campaigns with rep matching for unassigned ones
 router.get('/campaigns', asyncHandler(async (req: FirebaseAuthRequest, res) => {
@@ -57,10 +68,6 @@ router.get('/campaigns', asyncHandler(async (req: FirebaseAuthRequest, res) => {
 
   return ok(res, campaignsWithMatches, { page: Number(page), total, perPage: Number(limit) });
 }));
-
-function isAdmin(user?: FirebaseAuthRequest['user']) {
-  return user?.role === 'admin' || user?.role === 'super_admin';
-}
 
 // GET /api/v1/admin/users — list all users with profiles
 router.get('/users', asyncHandler(async (req: FirebaseAuthRequest, res) => {

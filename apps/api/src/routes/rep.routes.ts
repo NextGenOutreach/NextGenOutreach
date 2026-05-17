@@ -1,6 +1,9 @@
 import express from 'express';
 import { RepController } from '../controllers/rep.controller';
-import { requireRole } from '../middleware/firebaseAuth.middleware';
+import { requireRole, FirebaseAuthRequest } from '../middleware/firebaseAuth.middleware';
+import { asyncHandler } from '../middleware/asyncHandler';
+import { ok, badRequest } from '../lib/response';
+import prisma from '../lib/database';
 
 const router = express.Router();
 const ctrl = new RepController();
@@ -10,11 +13,13 @@ router.get('/', ctrl.listReps);
 router.get('/:id', ctrl.getRepById);
 
 // Protected rep endpoints
-router.patch('/profile', requireRole('rep'), async (req: FirebaseAuthRequest, res) => {
+router.patch('/profile', requireRole('rep'), asyncHandler(async (req: FirebaseAuthRequest, res) => {
   const { linkedinUrl, industry, bio, locationCountry, locationCity, availabilityStatus } = req.body;
   
+  if (!req.user) return badRequest(res, 'User not authenticated');
+
   const updated = await prisma.repProfile.update({
-    where: { userId: req.user!.id },
+    where: { userId: req.user.id },
     data: {
       ...(linkedinUrl !== undefined && { linkedinUrl }),
       ...(industry !== undefined && { industry }),
@@ -25,12 +30,12 @@ router.patch('/profile', requireRole('rep'), async (req: FirebaseAuthRequest, re
     }
   });
 
-  res.json({ success: true, data: updated });
-});
+  return ok(res, updated);
+}));
 
-router.post('/onboarding', requireRole('rep'), async (req, res) => {
+router.post('/onboarding', requireRole('rep'), asyncHandler(async (req: FirebaseAuthRequest, res) => {
   // TODO: Implement onboarding steps
-  res.json({ success: true, data: { message: 'Rep onboarding endpoint - to be implemented' } });
-});
+  return ok(res, { message: 'Rep onboarding endpoint - to be implemented' });
+}));
 
 export { router as repRoutes };

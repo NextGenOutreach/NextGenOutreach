@@ -9,6 +9,7 @@ import dotenv from 'dotenv';
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
 import { firebaseAuthMiddleware as authMiddleware } from './middleware/firebaseAuth.middleware';
+import { asyncHandler } from './middleware/asyncHandler';
 import { requestLogger } from './middleware/requestLogger';
 import { morganStream } from './lib/logger';
 import { authRateLimit, accountLockout, recordFailedLogin, clearFailedLogin } from './lib/rateLimiter';
@@ -109,6 +110,7 @@ const apiRouter = express.Router();
 // Public routes (no auth required)
 apiRouter.use('/auth', authRateLimit, accountLockout, recordFailedLogin, clearFailedLogin, authRoutes);
 apiRouter.use('/webhooks', webhookRoutes);
+apiRouter.use('/reps', repRoutes); // Marketplace reps are public
 
 // Intercept campaign activity creation for real-time notifications
 apiRouter.post('/campaigns/:id/activity', authMiddleware, asyncHandler(async (req, res, next) => {
@@ -126,7 +128,6 @@ apiRouter.post('/campaigns/:id/activity', authMiddleware, asyncHandler(async (re
 
 // Protected routes (auth required)
 apiRouter.use('/users', authMiddleware, userRoutes);
-apiRouter.use('/reps', authMiddleware, repRoutes);
 apiRouter.use('/clients', authMiddleware, clientRoutes);
 apiRouter.use('/campaigns', authMiddleware, campaignRoutes);
 apiRouter.use('/billing', authMiddleware, billingRoutes);

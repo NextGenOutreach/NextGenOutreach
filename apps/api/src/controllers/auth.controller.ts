@@ -29,12 +29,15 @@ export class AuthController {
     // Hash password
     const passwordHash = await bcrypt.hash(password, 12);
 
+    // Map role to Prisma UserRole enum (uppercase)
+    const prismaRole = (role?.toUpperCase() || 'CLIENT') as any;
+
     // Create user
     const user = await prisma.user.create({
       data: {
         email,
         passwordHash,
-        role: (role?.toUpperCase() || 'CLIENT') as UserRole,
+        role: prismaRole,
         status: 'PENDING',
         twoFaEnabled: false
       }
@@ -66,20 +69,21 @@ export class AuthController {
       });
     }
 
-    // Generate tokens
-    const payload = { sub: user.id, email: user.email, role: user.role };
-    const accessToken = signAccessToken(payload);
-    const refreshToken = signRefreshToken(payload);
+    // Generate tokens - convert role to UserRole type
+    const registerRoleValue = user.role.toLowerCase() as any as UserRole;
+    const registerPayload = { sub: user.id, email: user.email, role: registerRoleValue };
+    const registerAccessToken = signAccessToken(registerPayload);
+    const registerRefreshToken = signRefreshToken(registerPayload);
 
     return created(res, {
       user: {
         id: user.id,
         email: user.email,
-        role: user.role,
+        role: user.role.toLowerCase(),
         status: user.status
       },
-      accessToken,
-      refreshToken
+      accessToken: registerAccessToken,
+      refreshToken: registerRefreshToken
     });
   }
 
@@ -130,22 +134,23 @@ export class AuthController {
       }
     }
 
-    // Generate tokens
-    const payload = { sub: user.id, email: user.email, role: user.role };
-    const accessToken = signAccessToken(payload);
-    const refreshToken = signRefreshToken(payload);
+    // Generate tokens - convert role to UserRole type
+    const loginRoleValue = user.role.toLowerCase() as any as UserRole;
+    const loginPayload = { sub: user.id, email: user.email, role: loginRoleValue };
+    const loginAccessToken = signAccessToken(loginPayload);
+    const loginRefreshToken = signRefreshToken(loginPayload);
 
     return ok(res, {
       user: {
         id: user.id,
         email: user.email,
-        role: user.role,
+        role: user.role.toLowerCase(),
         status: user.status,
         clientProfile: user.clientProfile,
         repProfile: user.repProfile
       },
-      accessToken,
-      refreshToken
+      accessToken: loginAccessToken,
+      refreshToken: loginRefreshToken
     });
   }
 
