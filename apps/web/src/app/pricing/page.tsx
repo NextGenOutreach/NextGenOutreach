@@ -9,11 +9,10 @@ const PLANS = [
   {
     id: 'STARTER',
     name: 'Starter',
-    price: 499,
+    price: 75,
     features: [
       '1 ID-Verified Rep',
       'Connection Campaigns',
-      'DM Campaigns',
       'Secure Environment',
     ],
     accent: 'var(--accent-2)',
@@ -21,28 +20,60 @@ const PLANS = [
   {
     id: 'PRO',
     name: 'Professional',
-    price: 1499,
+    price: 150,
     features: [
       'Everything in Starter',
       'Post & Engagement',
-      'Sales Navigator Access',
-      'Account Warm-Up',
       'Priority Matching',
+      'Weekly Campaign Review',
     ],
     accent: 'var(--accent-1)',
     popular: true,
   },
   {
-    id: 'ELITE',
-    name: 'Elite',
-    price: 4999,
+    id: 'MANAGED',
+    name: 'Managed',
+    price: 300,
     features: [
       'Everything in Pro',
-      'Full Reply Handling',
-      'Appointment Setting',
-      'Account Manager',
+      'Managed Campaign Operations',
+      'Advanced Reporting',
+      'Priority Support',
     ],
     accent: 'var(--accent-4)',
+  },
+];
+
+const ADD_ONS = [
+  {
+    name: 'DM Campaigns',
+    description: 'Add direct-message sequences for selected reps.',
+    accent: 'var(--accent-2)',
+  },
+  {
+    name: 'Meeting Booking',
+    description: 'Qualify replies and book meetings into your calendar.',
+    accent: 'var(--accent-3)',
+  },
+  {
+    name: 'Reply Handling',
+    description: 'Human follow-up for interested prospects and objections.',
+    accent: 'var(--accent-1)',
+  },
+  {
+    name: 'Account Manager',
+    description: 'Dedicated campaign owner for strategy, QA, and reporting.',
+    accent: 'var(--accent-4)',
+  },
+  {
+    name: 'Sales Navigator',
+    description: 'Add Sales Navigator workflows where campaigns need it.',
+    accent: 'var(--accent-5)',
+  },
+  {
+    name: 'Account Warm-Up',
+    description: 'Prepare rep profiles before scaling daily outreach volume.',
+    accent: 'var(--accent-2)',
   },
 ];
 
@@ -106,7 +137,7 @@ export default function PricingPage() {
                 </h3>
                 <div className="flex items-baseline gap-1">
                   <span className="text-4xl font-black text-white">${plan.price}</span>
-                  <span className="text-white/40 font-bold text-sm">/ month</span>
+                  <span className="text-white/40 font-bold text-sm">per agent / month</span>
                 </div>
               </div>
 
@@ -129,6 +160,33 @@ export default function PricingPage() {
               </MaxButton>
             </MaxCard>
           ))}
+        </div>
+
+        <div className="mt-20">
+          <div className="text-center mb-10">
+            <p className="text-xs font-black uppercase tracking-[0.25em] text-accent-3 mb-3">
+              Add-ons
+            </p>
+            <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tight text-white">
+              Build the outreach stack you need
+            </h2>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {ADD_ONS.map((addOn) => (
+              <MaxCard key={addOn.name} className="p-6" style={{ borderColor: addOn.accent }}>
+                <div className="text-[10px] font-black uppercase tracking-widest mb-3" style={{ color: addOn.accent }}>
+                  Optional add-on
+                </div>
+                <h3 className="text-lg font-black uppercase text-white mb-3">
+                  {addOn.name}
+                </h3>
+                <p className="text-sm font-bold leading-relaxed text-white/55">
+                  {addOn.description}
+                </p>
+              </MaxCard>
+            ))}
+          </div>
         </div>
 
         <div className="mt-20 text-center">

@@ -233,7 +233,6 @@ export default function Home() {
                     <ul className="text-left space-y-4 mb-10">
                       <li className="flex items-center gap-3 font-bold text-white/80">✅ 1 ID-Verified Rep</li>
                       <li className="flex items-center gap-3 font-bold text-white/80">✅ Connection Campaigns</li>
-                      <li className="flex items-center gap-3 font-bold text-white/80">✅ DM Campaigns</li>
                       <li className="flex items-center gap-3 font-bold text-white/80">✅ Secure Environment</li>
                     </ul>
                     <MaxButton variant="secondary" fullWidth href="/pricing">Get Started →</MaxButton>
@@ -252,8 +251,7 @@ export default function Home() {
                     <ul className="text-left space-y-4 mb-10">
                       <li className="flex items-center gap-3 font-black text-white">✅ Everything in Starter</li>
                       <li className="flex items-center gap-3 font-black text-white">✅ Post & Engagement</li>
-                      <li className="flex items-center gap-3 font-black text-white">✅ Sales Navigator Access</li>
-                      <li className="flex items-center gap-3 font-black text-white">✅ Account Warm-Up</li>
+                      <li className="flex items-center gap-3 font-black text-white">✅ Weekly Campaign Review</li>
                       <li className="flex items-center gap-3 font-black text-accent-3">🎯 Priority Matching</li>
                     </ul>
                     <MaxButton fullWidth href="/pricing">Get Started →</MaxButton>
@@ -265,12 +263,36 @@ export default function Home() {
                     <div className="text-sm font-bold text-white/50 uppercase tracking-widest mb-10">per agent / month</div>
                     <ul className="text-left space-y-4 mb-10">
                       <li className="flex items-center gap-3 font-bold text-white/80">✅ Everything in Pro</li>
-                      <li className="flex items-center gap-3 font-bold text-white/80">✅ Full Reply Handling</li>
-                      <li className="flex items-center gap-3 font-bold text-white/80">✅ Appointment Setting</li>
-                      <li className="flex items-center gap-3 font-bold text-white/80">✅ Account Manager</li>
+                      <li className="flex items-center gap-3 font-bold text-white/80">✅ Managed Campaign Operations</li>
+                      <li className="flex items-center gap-3 font-bold text-white/80">✅ Advanced Reporting</li>
+                      <li className="flex items-center gap-3 font-bold text-white/80">✅ Priority Support</li>
                     </ul>
                     <MaxButton variant="secondary" fullWidth href="/pricing">Get Started →</MaxButton>
                  </MaxCard>
+              </div>
+              <div className="mt-20">
+                <div className="text-center mb-10">
+                  <span className="section-tag">Add-ons</span>
+                  <h3 className="font-outfit font-black text-3xl md:text-5xl uppercase headline-shadow mt-4">
+                    Add the services you need
+                  </h3>
+                </div>
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[
+                    { title: 'DM Campaigns', body: 'Add direct-message sequences for selected reps.', color: 'var(--accent-2)', shadow: 'var(--accent-5)' },
+                    { title: 'Meeting Booking', body: 'Qualify replies and book meetings into your calendar.', color: 'var(--accent-3)', shadow: 'var(--accent-2)', dashed: true },
+                    { title: 'Reply Handling', body: 'Human follow-up for interested prospects and objections.', color: 'var(--accent-1)', shadow: 'var(--accent-4)' },
+                    { title: 'Account Manager', body: 'Dedicated campaign owner for strategy, QA, and reporting.', color: 'var(--accent-4)', shadow: 'var(--accent-1)', dashed: true },
+                    { title: 'Sales Navigator', body: 'Add Sales Navigator workflows where campaigns need it.', color: 'var(--accent-5)', shadow: 'var(--accent-3)' },
+                    { title: 'Account Warm-Up', body: 'Prepare rep profiles before scaling daily outreach volume.', color: 'var(--accent-2)', shadow: 'var(--accent-1)', dashed: true },
+                  ].map((addOn) => (
+                    <MaxCard key={addOn.title} accentColor={addOn.color} shadowColor={addOn.shadow} dashed={addOn.dashed} className="p-6">
+                      <div className="text-[10px] font-black uppercase tracking-widest mb-3" style={{ color: addOn.color }}>Optional add-on</div>
+                      <h4 className="font-outfit font-black text-xl uppercase text-white mb-3">{addOn.title}</h4>
+                      <p className="text-sm font-bold leading-relaxed text-white/60">{addOn.body}</p>
+                    </MaxCard>
+                  ))}
+                </div>
               </div>
            </div>
         </section>

@@ -14,9 +14,9 @@ import {
 const router = express.Router();
 
 const PLAN_PRICES: Record<string, number> = {
-  'STARTER': 499,
-  'PRO': 1499,
-  'ELITE': 4999,
+  'STARTER': 75,
+  'PRO': 150,
+  'MANAGED': 300,
 };
 
 router.post('/subscribe', requireRole('client'), asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
