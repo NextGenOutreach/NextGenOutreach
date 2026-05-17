@@ -10,11 +10,13 @@ const NAV_BY_ROLE: Record<string, { name: string; href: string; icon: string }[]
     { name: 'Overview',    href: '/dashboard/client/overview',    icon: '📊' },
     { name: 'Campaigns',   href: '/dashboard/client/campaigns',   icon: '🚀' },
     { name: 'Marketplace', href: '/dashboard/client/marketplace', icon: '🔍' },
+    { name: 'Profile',     href: '/dashboard/client/profile',     icon: '👤' },
   ],
   rep: [
     { name: 'Overview', href: '/dashboard/rep/overview', icon: '📊' },
     { name: 'Tasks',    href: '/dashboard/rep/tasks',    icon: '✅' },
     { name: 'Earnings', href: '/dashboard/rep/earnings', icon: '💸' },
+    { name: 'Profile',  href: '/dashboard/rep/profile',  icon: '👤' },
     { name: 'Vault',    href: '/dashboard/vault',        icon: '🔐' },
   ],
   admin: [

@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { fetchAdminLeads, type AdminLead } from '@/lib/api';
+import { fetchAdminLeads, type AdminLead, fetchRepProfile, APIRepProfile, updateRepProfile, uploadIdDocument, syncCRM } from '@/lib/api';
+import { useAuth } from '@/lib/auth-context';
+import MaxCard from '@/components/ui/MaxCard';
+import MaxButton from '@/components/ui/MaxButton';
 
 const ACTIVITY_STYLES: Record<string, string> = {
   CONNECTION_ACCEPTED: 'border-accent-2 text-accent-2 bg-accent-2/10',
@@ -21,16 +24,60 @@ function timeAgo(date: string) {
 }
 
 export default function LeadVaultPage() {
+  const { user } = useAuth();
   const [leads, setLeads] = useState<AdminLead[]>([]);
+  const [profile, setProfile] = useState<APIRepProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [total, setTotal] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
-    fetchAdminLeads({ page: 1 })
-      .then(({ leads: data, total: t }) => { setLeads(data); setTotal(t); })
-      .catch(console.error)
-      .finally(() => setIsLoading(false));
-  }, []);
+    if (!user) return;
+
+    if (user.role === 'rep') {
+      fetchRepProfile()
+        .then(setProfile)
+        .catch(console.error)
+        .finally(() => setIsLoading(false));
+    } else {
+      fetchAdminLeads({ page: 1 })
+        .then(({ leads: data, total: t }) => { setLeads(data); setTotal(t); })
+        .catch(console.error)
+        .finally(() => setIsLoading(false));
+    }
+  }, [user]);
+
+  const handleIdUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      await uploadIdDocument(file);
+      // Reload profile to show pending status
+      const data = await fetchRepProfile();
+      setProfile(data);
+      alert('ID document uploaded successfully and pending review.');
+    } catch (err: any) {
+      console.error('Upload failed:', err);
+      alert(`Upload failed: ${err.message}`);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleSyncCRM = async () => {
+    setIsSyncing(true);
+    try {
+      const res = await syncCRM();
+      alert(res.message);
+    } catch (err: any) {
+      alert(`Sync failed: ${err.message}`);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -38,6 +85,93 @@ export default function LeadVaultPage() {
         <div className="max-w-5xl mx-auto animate-pulse space-y-4">
           <div className="h-8 bg-white/5 rounded-xl w-1/3" />
           {[...Array(5)].map((_, i) => <div key={i} className="h-14 bg-white/5 rounded-xl" />)}
+        </div>
+      </div>
+    );
+  }
+
+  if (user?.role === 'rep') {
+    return (
+      <div className="min-h-screen bg-background p-6 md:p-10">
+        <div className="max-w-4xl mx-auto space-y-10">
+          <header className="flex flex-col gap-4">
+            <p className="text-xs font-black uppercase tracking-[0.4em] text-accent-3">Security / Verification</p>
+            <h1 className="text-5xl font-black uppercase headline-shadow">Identity Vault</h1>
+            <p className="text-lg text-white/60 max-w-2xl">
+              Securely manage your identity documents and verification status.
+            </p>
+          </header>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            <MaxCard className="p-8 space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-black uppercase tracking-tight text-white">ID Verification</h3>
+                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                  profile?.idVerified ? 'bg-green-500/20 text-green-500' : 'bg-accent-3/20 text-accent-3'
+                }`}>
+                  {profile?.idVerified ? 'Verified' : 'Pending'}
+                </span>
+              </div>
+              
+              <p className="text-sm font-medium text-white/50 leading-relaxed">
+                To protect our clients and maintain marketplace integrity, all reps must verify their identity. Upload a clear photo of your National ID or Passport.
+              </p>
+
+              {!profile?.idVerified && (
+                <div className="pt-4">
+                  <label className="block">
+                    <span className="sr-only">Choose ID photo</span>
+                    <input 
+                      type="file" 
+                      onChange={handleIdUpload}
+                      disabled={isUploading}
+                      className="block w-full text-sm text-white/50
+                        file:mr-4 file:py-2 file:px-4
+                        file:rounded-full file:border-0
+                        file:text-xs file:font-black file:uppercase file:tracking-widest
+                        file:bg-accent-3 file:text-white
+                        hover:file:bg-accent-3/80
+                        cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                  </label>
+                  {isUploading && (
+                    <p className="text-[10px] font-black uppercase tracking-widest text-accent-3 mt-3 animate-pulse">
+                      Uploading document...
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {profile?.idVerified && (
+                <div className="flex items-center gap-3 p-4 bg-green-500/10 border border-green-500/20 rounded-xl">
+                  <span className="text-xl">✅</span>
+                  <div>
+                    <p className="text-xs font-black text-green-500 uppercase">Verification Complete</p>
+                    <p className="text-[10px] font-bold text-white/40 mt-0.5">Your identity has been confirmed by our compliance team.</p>
+                  </div>
+                </div>
+              )}
+            </MaxCard>
+
+            <MaxCard className="p-8 space-y-6 border-dashed border-accent-1/30 bg-accent-1/[0.02]">
+              <h3 className="text-xl font-black uppercase tracking-tight text-accent-1">Why Verify?</h3>
+              <ul className="space-y-4">
+                {[
+                  { icon: '🎯', title: 'Better Matching', body: 'Verified reps are prioritized in client searches.' },
+                  { icon: '💸', title: 'Unlock Payouts', body: 'ID verification is required to receive earnings.' },
+                  { icon: '🛡️', title: 'Account Safety', body: 'Protects your profile from unauthorized access.' },
+                ].map((item) => (
+                  <li key={item.title} className="flex gap-4">
+                    <span className="text-xl shrink-0">{item.icon}</span>
+                    <div>
+                      <p className="text-sm font-black text-white uppercase tracking-tight">{item.title}</p>
+                      <p className="text-xs font-medium text-white/40 mt-0.5 leading-relaxed">{item.body}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </MaxCard>
+          </div>
         </div>
       </div>
     );
@@ -102,8 +236,12 @@ export default function LeadVaultPage() {
         {/* Action Bar */}
         <div className="flex flex-wrap gap-4">
           <button className="text-xs font-black uppercase tracking-widest px-6 py-2 rounded-full border-2 border-accent-1 text-accent-1 hover:bg-accent-1/10 transition-colors">Export CSV</button>
-          <button className="text-xs font-black uppercase tracking-widest px-6 py-2 rounded-full border-2 border-accent-2 text-accent-2 hover:bg-accent-2/10 transition-colors">
-            Sync CRM
+          <button 
+            onClick={handleSyncCRM}
+            disabled={isSyncing}
+            className="text-xs font-black uppercase tracking-widest px-6 py-2 rounded-full border-2 border-accent-2 text-accent-2 hover:bg-accent-2/10 transition-colors disabled:opacity-50"
+          >
+            {isSyncing ? 'Syncing...' : 'Sync CRM'}
           </button>
         </div>
       </div>

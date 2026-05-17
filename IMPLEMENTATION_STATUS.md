@@ -45,9 +45,26 @@ The NextGenOutreach platform is a **LinkedIn SDR & Reps Marketplace** with a two
 - ✅ `GET /api/v1/admin/stats` — Platform statistics
 - ✅ `GET /api/v1/admin/campaigns` — All campaigns with rep matching
 - ✅ `GET /api/v1/admin/activity` — Platform activity feed
-- ✅ `GET /api/v1/admin/leads` — Campaign activities as leads
+- ✅ `GET /api/v1/admin/leads` — Campaign activities as prospect leads
 - ✅ `GET /api/v1/admin/reps` — All reps with performance stats
 - ✅ `GET /api/v1/admin/earnings` — All earnings records
+
+**Internal CRM & Operations Endpoints (Auth Required):**
+- ✅ `GET /api/v1/crm/leads` — Internal sales pipeline management
+- ✅ `POST /api/v1/crm/leads` — Create sales lead
+- ✅ `PATCH /api/v1/crm/leads/:id` — Update lead stage & details
+- ✅ `POST /api/v1/crm/leads/:id/score` — ICP scoring logic
+- ✅ `GET /api/v1/prospects` — Client/Rep prospect CRM view
+- ✅ `PATCH /api/v1/prospects/:id` — Update prospect status & sentiment
+- ✅ `GET /api/v1/tasks` — Task queue for current user
+- ✅ `PATCH /api/v1/tasks/:id` — Update task status & audit trail
+
+**Automated Logic & Background Jobs:**
+- ✅ **Daily Compliance Monitoring** — Nightly checks for limits, reports, and rates
+- ✅ **Trust Score Calculation** — Monthly recalculation of rep trust scores
+- ✅ **Tier Progression Rules** — Automatic tier upgrades/downgrades
+- ✅ **Payout Calculation Engine** — Monthly earnings generation with multipliers
+- ✅ **Task Auto-Triggers** — Events create follow-up tasks for staff
 - ✅ `GET /api/v1/admin/alerts` — Red alerts (inactive campaigns)
 - ✅ `PATCH /api/v1/admin/users/:id/status` — Change user status
 - ✅ `PATCH /api/v1/admin/users/:id/role` — Change user role

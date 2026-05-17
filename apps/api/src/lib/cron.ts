@@ -1,9 +1,13 @@
 import cron from 'node-cron';
 import prisma from './database';
-
 import { calculateMatchScore } from '../services/matching.service';
+import { runDailyComplianceCheck } from '../services/compliance.service';
+import { calculateRepTrustScore, updateRepTier } from '../services/rep.service';
+import { calculateMonthlyPayouts } from '../services/billing.service';
 
 export function startCronJobs() {
+  // ─── Operational Logic ──────────────────────────────────────────────────────
+
   // Every 4 hours: check for stale active campaigns (no activity in 24h)
   cron.schedule('0 */4 * * *', async () => {
     try {
@@ -18,7 +22,6 @@ export function startCronJobs() {
       for (const campaign of activeCampaigns) {
         const lastActivity = campaign.activities[0]?.occurredAt;
         if (!lastActivity || lastActivity < threshold) {
-          // Log alert or create admin notification
           console.warn(`[cron] ALERT: Campaign "${campaign.name}" (${campaign.id}) is stale. No activity in 24h.`);
           staleCount++;
         }
@@ -28,6 +31,44 @@ export function startCronJobs() {
       console.error('[cron] Stale check failed:', err);
     }
   });
+
+  // Daily at 23:00: Run compliance checks (Section 6.3)
+  cron.schedule('0 23 * * *', async () => {
+    try {
+      await runDailyComplianceCheck();
+      console.log('[cron] Daily compliance checks completed');
+    } catch (err) {
+      console.error('[cron] Compliance check failed:', err);
+    }
+  });
+
+  // 1st of every month at 00:00: Trust Score & Tier Review (Section 5.4, 5.5)
+  cron.schedule('0 0 1 * *', async () => {
+    try {
+      const reps = await prisma.repProfile.findMany({ select: { id: true } });
+      for (const rep of reps) {
+        await calculateRepTrustScore(rep.id);
+        await updateRepTier(rep.id);
+      }
+      console.log('[cron] Monthly Trust Score & Tier recalculation completed');
+      
+      // Also calculate payouts for previous month (Section 7.3)
+      await calculateMonthlyPayouts();
+      console.log('[cron] Monthly payout calculation completed');
+    } catch (err) {
+      console.error('[cron] Monthly maintenance failed:', err);
+    }
+  });
+
+  // ─── Campaign Matching & Lifecycle ──────────────────────────────────────────
+
+  // Every hour: auto-assign top rep for pending campaigns if score > 80
+  cron.schedule('30 * * * *', async () => {
+...
+  });
+
+  console.log('✅ Cron jobs started');
+}
 
   // Every hour: auto-assign top rep for pending campaigns if score > 80
   cron.schedule('30 * * * *', async () => {

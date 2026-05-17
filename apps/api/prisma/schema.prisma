@@ -26,6 +26,14 @@ model User {
   clientProfile   ClientProfile?
   notifications   Notification[]
   auditLog        AuditLog[]
+  assignedTasks   Task[]         @relation("AssignedTasks")
+  createdTasks    Task[]         @relation("CreatedTasks")
+  taskComments    TaskComment[]
+  taskAuditTrail  TaskAuditLog[]
+  assignedLeads   Lead[]
+  crmActivities   CRMActivity[]
+  incidents       Incident[]     @relation()
+  qaScoresEvaluated QAScore[]    @relation("EvaluatedBy")
 
   @@map("users")
 }
@@ -51,6 +59,8 @@ model RepProfile {
   hourlyRateUsd       Decimal?  @map("hourly_rate_usd") @db.Decimal(8, 2)
   rating              Decimal   @default(0.00) @db.Decimal(3, 2)
   totalReviews        Int       @default(0) @map("total_reviews")
+  trustScore          Int       @default(70) @map("trust_score")
+  tier                RepTier   @default(BRONZE)
   createdAt           DateTime  @default(now()) @map("created_at")
 
   // Relations
@@ -58,8 +68,40 @@ model RepProfile {
   campaigns           Campaign[]
   browserSessions     BrowserSession[]
   earnings            RepEarning[]
+  prospects           Prospect[]
+  qaScores            QAScore[]
+  training            RepTraining[]
+  dailyReports        DailyReport[]
 
   @@map("rep_profiles")
+}
+
+model DailyReport {
+  id              String   @id @default(cuid())
+  repId           String   @map("rep_id")
+  campaignId      String   @map("campaign_id")
+  connectionsSent Int      @default(0) @map("connections_sent")
+  messagesSent    Int      @default(0) @map("messages_sent")
+  repliesReceived Int      @default(0) @map("replies_received")
+  meetingsBooked  Int      @default(0) @map("meetings_booked")
+  reportDate      DateTime @map("report_date")
+  notes           String?
+  status          String   @default("SUBMITTED") // SUBMITTED, LATE, MISSING
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // Relations
+  rep             RepProfile @relation(fields: [repId], references: [id])
+  campaign        Campaign   @relation(fields: [campaignId], references: [id])
+
+  @@unique([repId, campaignId, reportDate])
+  @@map("daily_reports")
+}
+
+enum RepTier {
+  BRONZE
+  SILVER
+  GOLD
+  ELITE
 }
 
 model ClientProfile {
@@ -80,6 +122,8 @@ model ClientProfile {
   campaigns       Campaign[]
   subscriptions   Subscription[]
   earnings        RepEarning[]
+  deals           Deal[]
+  invoices        Invoice[]
 
   @@map("client_profiles")
 }
@@ -106,6 +150,8 @@ model Campaign {
   activities        CampaignActivity[]
   browserSessions   BrowserSession[]
   earnings          RepEarning[]
+  prospects         Prospect[]
+  qaScores          QAScore[]
 
   @@map("campaigns")
 }
@@ -213,6 +259,253 @@ model AuditLog {
   @@map("audit_log")
 }
 
+model Task {
+  id              String      @id @default(cuid())
+  title           String
+  description     String?
+  category        String      // Client / Rep / Compliance / Campaign / Finance / Internal / QA / Security
+  priority        Priority    @default(MEDIUM)
+  status          TaskStatus  @default(TODO)
+  assignedToId    String      @map("assigned_to_id")
+  createdById     String      @map("created_by_id")
+  relatedToType   String?     @map("related_to_type") // client / rep / campaign / incident / payout
+  relatedToId     String?     @map("related_to_id")
+  dueDate         DateTime    @map("due_date")
+  remindAt        DateTime?   @map("remind_at")
+  completedAt     DateTime?   @map("completed_at")
+  blockedReason   String?     @map("blocked_reason")
+  isRecurring     Boolean     @default(false) @map("is_recurring")
+  recurrenceRule  String?     @map("recurrence_rule")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  assignedTo      User        @relation("AssignedTasks", fields: [assignedToId], references: [id])
+  createdBy       User        @relation("CreatedTasks", fields: [createdById], references: [id])
+  comments        TaskComment[]
+  auditTrail      TaskAuditLog[]
+
+  @@map("tasks")
+}
+
+model TaskComment {
+  id        String   @id @default(cuid())
+  taskId    String   @map("task_id")
+  userId    String   @map("user_id")
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("task_comments")
+}
+
+model TaskAuditLog {
+  id          String   @id @default(cuid())
+  taskId      String   @map("task_id")
+  userId      String   @map("user_id")
+  action      String
+  before      Json?
+  after       Json?
+  timestamp   DateTime @default(now())
+
+  // Relations
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@map("task_audit_logs")
+}
+
+model Lead {
+  id              String      @id @default(cuid())
+  companyName     String      @map("company_name")
+  contactName     String      @map("contact_name")
+  email           String
+  phone           String?
+  linkedinUrl     String?     @map("linkedin_url")
+  source          String
+  industry        String
+  companySize     String      @map("company_size")
+  estRevenue      String?     @map("est_revenue")
+  icpScore        Int?        @map("icp_score")
+  pipelineStage   PipelineStage @default(NEW_LEAD) @map("pipeline_stage")
+  assignedToId    String?     @map("assigned_to_id")
+  nextAction      String?     @map("next_action")
+  nextActionDate  DateTime?   @map("next_action_date")
+  painPoints      String[]    @map("pain_points")
+  outreachHistory String?     @map("outreach_history")
+  budgetRange     String?     @map("budget_range")
+  timeline        String?
+  isDecisionMaker Boolean     @default(false) @map("is_decision_maker")
+  notes           String?
+  tags            String[]
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  assignedTo      User?       @relation(fields: [assignedToId], references: [id])
+  activities      CRMActivity[]
+
+  @@map("leads")
+}
+
+model Prospect {
+  id              String      @id @default(cuid())
+  campaignId      String      @map("campaign_id")
+  repId           String      @map("rep_id")
+  firstName       String      @map("first_name")
+  lastName        String      @map("last_name")
+  company         String
+  jobTitle        String      @map("job_title")
+  linkedinUrl     String      @map("linkedin_url")
+  connectionStatus ConnectionStatus @default(NOT_SENT) @map("connection_status")
+  messageStatus   MessageStatus @default(NOT_STARTED) @map("message_status")
+  replySentiment  Sentiment?  @map("reply_sentiment")
+  meetingBooked   Boolean     @default(false) @map("meeting_booked")
+  meetingDate     DateTime?   @map("meeting_date")
+  isDisqualified  Boolean     @default(false) @map("is_disqualified")
+  disqualifyReason String?    @map("disqualify_reason")
+  notes           String?
+  tags            String[]
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  campaign        Campaign    @relation(fields: [campaignId], references: [id])
+  rep             RepProfile  @relation(fields: [repId], references: [id])
+  activities      CRMActivity[]
+  deals           Deal[]
+
+  @@map("prospects")
+}
+
+model CRMActivity {
+  id          String      @id @default(cuid())
+  leadId      String?     @map("lead_id")
+  prospectId  String?     @map("prospect_id")
+  userId      String      @map("user_id")
+  type        String      // STAGE_CHANGE, NOTE_ADDED, CALL_LOGGED, EMAIL_SENT, MEETING_BOOKED, PROPOSAL_SENT
+  content     String
+  metadata    Json?
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  // Relations
+  lead        Lead?       @relation(fields: [leadId], references: [id])
+  prospect    Prospect?   @relation(fields: [prospectId], references: [id])
+  user        User        @relation(fields: [userId], references: [id])
+
+  @@map("crm_activities")
+}
+
+model Deal {
+  id              String      @id @default(cuid())
+  prospectId      String      @map("prospect_id")
+  clientId        String      @map("client_id")
+  value           Decimal?    @db.Decimal(12, 2)
+  status          String      @default("OPEN")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  prospect        Prospect    @relation(fields: [prospectId], references: [id])
+  client          ClientProfile @relation(fields: [clientId], references: [id])
+
+  @@map("deals")
+}
+
+model Incident {
+  id            String      @id @default(cuid())
+  type          String
+  severity      Severity    @default(MEDIUM)
+  relatedToType String?     @map("related_to_type")
+  relatedToId   String?     @map("related_to_id")
+  description   String
+  status        String      @default("OPEN")
+  reportedById  String      @map("reported_by_id")
+  reportedAt    DateTime    @default(now()) @map("reported_at")
+  resolvedAt    DateTime?   @map("resolved_at")
+  resolution    String?
+
+  // Relations
+  reportedBy    User        @relation(fields: [reportedById], references: [id])
+
+  @@map("incidents")
+}
+
+model QAScore {
+  id            String      @id @default(cuid())
+  campaignId    String      @map("campaign_id")
+  repId         String      @map("rep_id")
+  score         Int
+  notes         String?
+  evaluatedById String      @map("evaluated_by_id")
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  // Relations
+  campaign      Campaign    @relation(fields: [campaignId], references: [id])
+  rep           RepProfile  @relation(fields: [repId], references: [id])
+  evaluatedBy   User        @relation("EvaluatedBy", fields: [evaluatedById], references: [id])
+
+  @@map("qa_scores")
+}
+
+model RepTraining {
+  id              String      @id @default(cuid())
+  repId           String      @map("rep_id")
+  moduleId        String      @map("module_id")
+  status          String      @default("IN_PROGRESS")
+  score           Int?
+  attempts        Int         @default(1)
+  lastAttemptAt   DateTime    @default(now()) @map("last_attempt_at")
+  completedAt     DateTime?   @map("completed_at")
+
+  // Relations
+  rep             RepProfile  @relation(fields: [repId], references: [id])
+  module          TrainingModule @relation(fields: [moduleId], references: [id])
+
+  @@map("rep_training")
+}
+
+model TrainingModule {
+  id          String      @id @default(cuid())
+  title       String
+  content     String
+  order       Int
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  // Relations
+  enrollments RepTraining[]
+
+  @@map("training_modules")
+}
+
+model Invoice {
+  id              String      @id @default(cuid())
+  clientId        String      @map("client_id")
+  amount          Decimal     @db.Decimal(12, 2)
+  status          String      @default("PENDING")
+  payfastPaymentId String?    @map("payfast_payment_id")
+  dueDate         DateTime    @map("due_date")
+  paidAt          DateTime?   @map("paid_at")
+  pdfUrl          String?     @map("pdf_url")
+  createdAt       DateTime    @default(now()) @map("created_at")
+
+  // Relations
+  client          ClientProfile @relation(fields: [clientId], references: [id])
+
+  @@map("invoices")
+}
+
+model SystemSetting {
+  key         String   @id
+  value       Json
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("system_settings")
+}
+
 // Enums
 enum UserRole {
   CLIENT
@@ -226,6 +519,63 @@ enum UserStatus {
   ACTIVE
   SUSPENDED
   BANNED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  BLOCKED
+  DONE
+  CANCELLED
+}
+
+enum PipelineStage {
+  NEW_LEAD
+  QUALIFYING
+  QUALIFIED
+  PROPOSAL_SENT
+  NEGOTIATION
+  WON_ONBOARDING
+  ACTIVE_CLIENT
+  CHURNED
+  DISQUALIFIED
+}
+
+enum ConnectionStatus {
+  NOT_SENT
+  PENDING
+  CONNECTED
+  IGNORED
+  WITHDRAWN
+}
+
+enum MessageStatus {
+  NOT_STARTED
+  MESSAGE_1_SENT
+  MESSAGE_2_SENT
+  MESSAGE_3_SENT
+  REPLIED
+}
+
+enum Sentiment {
+  POSITIVE
+  NEUTRAL
+  NEGATIVE
+  NOT_APPLICABLE
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
 }
 
 enum Plan {

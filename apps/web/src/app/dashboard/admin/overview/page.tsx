@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { fetchAdminStats, fetchAdminActivity, fetchAdminRedAlerts, type AdminStats, type AdminActivity, type AdminAlert } from '@/lib/api';
+import { fetchAdminStats, fetchAdminActivity, fetchAdminRedAlerts, fetchAdminAnalytics, type AdminStats, type AdminActivity, type AdminAlert, type AdminAnalytics } from '@/lib/api';
 
 const QUICK_ACTIONS = [
   { label: 'Manage Users', href: '/dashboard/admin/users', accent: 'var(--accent-1)' },
@@ -34,11 +34,22 @@ export default function AdminOverviewPage() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [activity, setActivity] = useState<AdminActivity[]>([]);
   const [alerts, setAlerts] = useState<AdminAlert[]>([]);
+  const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([fetchAdminStats(), fetchAdminActivity(), fetchAdminRedAlerts()])
-      .then(([s, a, al]) => { setStats(s); setActivity(a); setAlerts(al); })
+    Promise.all([
+      fetchAdminStats(), 
+      fetchAdminActivity(), 
+      fetchAdminRedAlerts(),
+      fetchAdminAnalytics()
+    ])
+      .then(([s, a, al, an]) => { 
+        setStats(s); 
+        setActivity(a); 
+        setAlerts(al); 
+        setAnalytics(an);
+      })
       .catch(console.error)
       .finally(() => setIsLoading(false));
   }, []);
@@ -134,18 +145,45 @@ export default function AdminOverviewPage() {
           </div>
 
           {/* Platform totals */}
-          <div className="lg:col-span-2">
-            <h2 className="text-sm font-black uppercase tracking-widest text-white/50 mb-4">Platform Totals</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="lg:col-span-2 space-y-6">
+            <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-6">
+              <h2 className="text-sm font-black uppercase tracking-widest text-white/50 mb-6">Revenue Growth</h2>
+              <div className="flex items-end gap-2 h-32">
+                {analytics && Object.entries(analytics.revenueByMonth).length > 0 ? (
+                  Object.entries(analytics.revenueByMonth).slice(-6).map(([month, amount]) => {
+                    const maxAmount = Math.max(...Object.values(analytics.revenueByMonth), 1);
+                    const height = (amount / maxAmount) * 100;
+                    return (
+                      <div key={month} className="flex-1 flex flex-col items-center gap-2 group relative">
+                        <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-accent-1 text-white text-[10px] font-black px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                          ${amount.toLocaleString()}
+                        </div>
+                        <div 
+                          className="w-full bg-accent-1/20 border-t-2 border-accent-1 rounded-t-lg transition-all duration-500"
+                          style={{ height: `${height}%` }}
+                        />
+                        <span className="text-[10px] font-bold text-white/30 uppercase">{month.split('-')[1]}</span>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="flex-1 flex items-center justify-center border-2 border-dashed border-white/5 rounded-xl">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-white/20">No data available</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[
                 { label: 'Total Users', value: stats?.totalUsers ?? '—', color: 'var(--accent-1)' },
                 { label: 'Total Reps', value: stats?.totalReps ?? '—', color: 'var(--accent-2)' },
                 { label: 'Total Clients', value: stats?.totalClients ?? '—', color: 'var(--accent-3)' },
                 { label: 'Active Campaigns', value: stats?.activeCampaigns ?? '—', color: 'var(--accent-4)' },
               ].map((s) => (
-                <div key={s.label} className="flex items-center justify-between p-3 bg-white/[0.03] border border-white/[0.06] rounded-xl">
+                <div key={s.label} className="flex items-center justify-between p-4 bg-white/[0.03] border border-white/[0.06] rounded-2xl">
                   <span className="text-sm font-bold text-white/60">{s.label}</span>
-                  <span className="text-lg font-black" style={{ color: s.color }}>{s.value}</span>
+                  <span className="text-xl font-black" style={{ color: s.color }}>{s.value}</span>
                 </div>
               ))}
             </div>

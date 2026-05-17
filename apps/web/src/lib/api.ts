@@ -103,12 +103,14 @@ export async function fetchReps(params?: {
   country?: string;
   sort?: 'rating' | 'followers' | 'rate';
   page?: number;
+  clientPreferences?: any;
 }): Promise<{ reps: APIRep[]; total: number }> {
   const qs = new URLSearchParams();
   if (params?.industry && params.industry !== 'all') qs.set('industry', params.industry);
   if (params?.country && params.country !== 'all') qs.set('country', params.country);
   if (params?.sort) qs.set('sort', params.sort);
   if (params?.page) qs.set('page', String(params.page));
+  if (params?.clientPreferences) qs.set('clientPreferences', JSON.stringify(params.clientPreferences));
 
   const query = qs.toString() ? `?${qs.toString()}` : '';
   const { data, meta } = await request<APIRep[]>(`/reps${query}`);
@@ -275,6 +277,17 @@ export async function fetchAdminEarnings(params?: { page?: number; status?: stri
   return { earnings: data, total: (meta as any)?.total ?? data.length };
 }
 
+export interface AdminAnalytics {
+  revenueByMonth: Record<string, number>;
+  userGrowthByMonth: Record<string, { total: number, client: number, rep: number }>;
+  activityByDay: Record<string, Record<string, number>>;
+}
+
+export async function fetchAdminAnalytics(): Promise<AdminAnalytics> {
+  const { data } = await request<AdminAnalytics>('/analytics/admin');
+  return data;
+}
+
 // ─── Rep Dashboard ────────────────────────────────────────────────────────────
 
 export interface APITask {
@@ -333,5 +346,92 @@ export async function fetchRepTasks(): Promise<APITask[]> {
 export async function fetchRepEarnings(status?: string): Promise<{ earnings: APIEarning[]; monthly: APIMonthlyEarning[] }> {
   const qs = status && status !== 'all' ? `?status=${status}` : '';
   const { data } = await request<{ earnings: APIEarning[]; monthly: APIMonthlyEarning[] }>(`/rep/earnings${qs}`);
+  return data;
+}
+
+// ─── Profiles ─────────────────────────────────────────────────────────────────
+
+export interface APIRepProfile extends APIRep {
+  userId: string;
+  idVerified: boolean;
+  onboardingStep: number;
+  user: {
+    email: string;
+    status: string;
+  };
+}
+
+export async function fetchRepProfile(): Promise<APIRepProfile> {
+  const { data } = await request<APIRepProfile>('/reps/profile');
+  return data;
+}
+
+export async function updateRepProfile(body: Partial<APIRep>): Promise<APIRepProfile> {
+  const { data } = await request<APIRepProfile>('/reps/profile', {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+  return data;
+}
+
+export async function uploadIdDocument(file: File): Promise<any> {
+  const token = await getToken();
+  const formData = new FormData();
+  formData.append('idDocument', file);
+
+  const res = await fetch(`${BASE}/api/v1/reps/upload-id`, {
+    method: 'POST',
+    headers: {
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    },
+    body: formData,
+  });
+
+  const json = await res.json();
+  if (!res.ok || !json.success) {
+    throw new Error(json?.error?.message ?? `Upload error ${res.status}`);
+  }
+  return json.data;
+}
+
+export interface APIClientProfile {
+  id: string;
+  userId: string;
+  companyName: string | null;
+  website: string | null;
+  industry: string | null;
+  targetMarket: string | null;
+  plan: string;
+  planStatus: string;
+  user: {
+    email: string;
+  };
+}
+
+export async function fetchClientProfile(): Promise<APIClientProfile> {
+  const { data } = await request<APIClientProfile>('/clients/profile');
+  return data;
+}
+
+export async function updateClientProfile(body: Partial<APIClientProfile>): Promise<APIClientProfile> {
+  const { data } = await request<APIClientProfile>('/clients/profile', {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+  return data;
+}
+
+export async function createSubscription(plan: string): Promise<{ url: string; payload: Record<string, string> }> {
+  const { data } = await request<{ url: string; payload: Record<string, string> }>('/billing/subscribe', {
+    method: 'POST',
+    body: JSON.stringify({ plan }),
+  });
+  return data;
+}
+
+export async function syncCRM(): Promise<{ message: string; syncedCount: number }> {
+  const { data } = await request<{ message: string; syncedCount: number }>('/clients/sync-crm', {
+    method: 'POST',
+  });
   return data;
 }

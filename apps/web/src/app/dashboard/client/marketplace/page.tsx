@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { fetchReps, type APIRep } from '@/lib/api';
+import { fetchReps, fetchClientProfile, type APIRep, type APIClientProfile } from '@/lib/api';
 
 export default function ClientMarketplacePage() {
   const [reps, setReps] = useState<APIRep[]>([]);
+  const [clientProfile, setClientProfile] = useState<APIClientProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -17,14 +18,40 @@ export default function ClientMarketplacePage() {
     setIsLoading(true);
     setError(null);
     try {
-      const { reps: data } = await fetchReps({ industry: selectedIndustry, country: selectedLocation, sort: sortBy });
+      let prefs = null;
+      if (!clientProfile) {
+        try {
+          const cp = await fetchClientProfile();
+          setClientProfile(cp);
+          prefs = {
+            targetIndustry: cp.industry,
+            targetCountry: null,
+            followerRange: { min: 0, max: 1000000 }
+          };
+        } catch (e) {
+          console.warn('Could not fetch client profile for matching:', e);
+        }
+      } else {
+        prefs = {
+          targetIndustry: clientProfile.industry,
+          targetCountry: null,
+          followerRange: { min: 0, max: 1000000 }
+        };
+      }
+
+      const { reps: data } = await fetchReps({ 
+        industry: selectedIndustry, 
+        country: selectedLocation, 
+        sort: sortBy,
+        clientPreferences: prefs
+      });
       setReps(data);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load marketplace');
     } finally {
       setIsLoading(false);
     }
-  }, [selectedIndustry, selectedLocation, sortBy]);
+  }, [selectedIndustry, selectedLocation, sortBy, clientProfile]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -142,9 +169,16 @@ export default function ClientMarketplacePage() {
                       <p className="text-xs font-medium text-white/45">{location}</p>
                     </div>
                   </div>
-                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full border shrink-0" style={{ color: av.color, borderColor: av.color + '50', background: av.color + '15' }}>
-                    {av.label}
-                  </span>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full border shrink-0" style={{ color: av.color, borderColor: av.color + '50', background: av.color + '15' }}>
+                      {av.label}
+                    </span>
+                    {(rep as any).matchScore && (
+                      <span className="text-[9px] font-black uppercase tracking-widest text-accent-1 bg-accent-1/10 px-1.5 py-0.5 rounded">
+                        {(rep as any).matchScore.score}% Match
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {rep.bio && <p className="text-xs font-medium text-white/50 leading-relaxed line-clamp-2">{rep.bio}</p>}

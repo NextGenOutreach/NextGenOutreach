@@ -90,8 +90,8 @@ All dashboard pages are now wired to real API endpoints. No mock data remains in
 | Admin Stats | `GET /api/v1/admin/stats` | ✅ Live |
 | Rep Tasks | `GET /api/v1/rep/tasks` | ✅ Live |
 | Rep Earnings | `GET /api/v1/rep/earnings` | ✅ Live |
-| Lead Vault | `GET /api/v1/leads` | ⏳ Future sprint |
-| Missions / Agents | — | ⏳ Future sprint |
+| Lead Vault | `GET /api/v1/admin/leads` | ✅ Live |
+| Missions / Agents | `GET /api/v1/campaigns` / `/admin/reps` | ✅ Live |
 
 ---
 
@@ -111,16 +111,17 @@ Before going live, verify these flows end-to-end:
 
 ---
 
-## 🏗️ 9. Missing Backend Features (future sprint)
+## 🏗️ 9. Missing Backend Features — ✅ COMPLETED SPRINT
 
-These require new backend work before the frontend can fully use them:
+The following features have been implemented and wired up:
 
-- **ID Verification flow** — Vault page has the UI but needs an upload + review API
-- **Real-time matching** — Agents page is placeholder until the matching service is wired up
-- **Payment / PayFast integration** — Pricing page CTAs link to `/register`, actual billing not yet implemented
-- **Rep profile pages** — `/dashboard/rep/profile` route does not exist yet
-- **Client profile page** — `/dashboard/client/profile` is linked from the onboarding checklist but not created
-- **Admin analytics** — Charts on Admin Overview are static; need a reporting API
+- ✅ **ID Verification flow** — S3 upload API implemented + UI integrated into `/dashboard/vault`.
+- ✅ **Real-time matching** — Matching service integrated into marketplace with visual match scores.
+- ✅ **Payment / PayFast integration** — Checkout API, ITN webhook handler, and `/pricing` page implemented.
+- ✅ **Rep profile pages** — `/dashboard/rep/profile` fully implemented with edit support.
+- ✅ **Client profile page** — `/dashboard/client/profile` fully implemented with subscription status.
+- ✅ **Admin analytics** — Historical reporting API + live charts added to Admin Overview.
+- ✅ **Lead Vault** — Integrated with activities API + CRM Sync functionality implemented.
 
 ---
 

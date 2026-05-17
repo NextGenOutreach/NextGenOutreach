@@ -25,6 +25,9 @@ import billingRoutes from './routes/billing';
 import analyticsRoutes from './routes/analytics';
 import adminRoutes from './routes/admin';
 import repDashboardRoutes from './routes/rep-dashboard';
+import crmRoutes from './routes/crm';
+import prospectRoutes from './routes/prospects';
+import taskRoutes from './routes/tasks';
 import webhookRoutes from './routes/webhooks';
 import healthRoutes from './routes/health';
 import { startCronJobs } from './lib/cron';
@@ -134,6 +137,9 @@ apiRouter.use('/billing', authMiddleware, billingRoutes);
 apiRouter.use('/analytics', authMiddleware, analyticsRoutes);
 apiRouter.use('/admin', authMiddleware, adminRoutes);
 apiRouter.use('/rep', authMiddleware, repDashboardRoutes);
+apiRouter.use('/crm', authMiddleware, crmRoutes);
+apiRouter.use('/prospects', authMiddleware, prospectRoutes);
+apiRouter.use('/tasks', authMiddleware, taskRoutes);
 
 app.use('/api/v1', apiRouter);
 
