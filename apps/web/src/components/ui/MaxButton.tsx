@@ -6,6 +6,7 @@ interface MaxButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   href?: string;
   size?: 'sm' | 'md' | 'lg';
   fullWidth?: boolean;
+  loading?: boolean;
   target?: React.AnchorHTMLAttributes<HTMLAnchorElement>['target'];
   rel?: React.AnchorHTMLAttributes<HTMLAnchorElement>['rel'];
 }
@@ -16,9 +17,11 @@ export const MaxButton: React.FC<MaxButtonProps> = ({
   href,
   size = 'md',
   fullWidth = false,
+  loading = false,
   className = '',
   target,
   rel,
+  disabled,
   ...props
 }) => {
   const baseStyles = "inline-flex items-center justify-center font-outfit font-black uppercase tracking-widest transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed";
@@ -47,8 +50,10 @@ export const MaxButton: React.FC<MaxButtonProps> = ({
   }
 
   return (
-    <button className={combinedStyles} {...props}>
+    <button className={combinedStyles} disabled={disabled || loading} {...props}>
       {children}
     </button>
   );
 };
+
+export default MaxButton;

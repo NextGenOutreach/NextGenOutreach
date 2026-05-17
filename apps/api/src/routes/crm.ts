@@ -55,7 +55,7 @@ router.post('/leads', asyncHandler(async (req: FirebaseAuthRequest, res) => {
   });
 
   // Log activity
-  await prisma.crmActivity.create({
+  await prisma.cRMActivity.create({
     data: {
       leadId: lead.id,
       userId: req.user!.id,
@@ -85,7 +85,7 @@ router.patch('/leads/:id', asyncHandler(async (req: FirebaseAuthRequest, res) =>
 
   // If stage changed, log it and potentially trigger tasks
   if (pipelineStage && pipelineStage !== currentLead.pipelineStage) {
-    await prisma.crmActivity.create({
+    await prisma.cRMActivity.create({
       data: {
         leadId,
         userId: req.user!.id,
@@ -108,7 +108,7 @@ router.post('/leads/:id/activity', asyncHandler(async (req: FirebaseAuthRequest,
   const { type, content, metadata } = req.body;
   const leadId = req.params.id;
 
-  const activity = await prisma.crmActivity.create({
+  const activity = await prisma.cRMActivity.create({
     data: {
       leadId,
       userId: req.user!.id,
@@ -139,7 +139,7 @@ router.post('/leads/:id/score', asyncHandler(async (req: FirebaseAuthRequest, re
   });
 
   // Log activity
-  await prisma.crmActivity.create({
+  await prisma.cRMActivity.create({
     data: {
       leadId: lead.id,
       userId: req.user!.id,

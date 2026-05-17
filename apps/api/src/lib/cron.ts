@@ -6,9 +6,6 @@ import { calculateRepTrustScore, updateRepTier } from '../services/rep.service';
 import { calculateMonthlyPayouts } from '../services/billing.service';
 
 export function startCronJobs() {
-  // ─── Operational Logic ──────────────────────────────────────────────────────
-
-  // Every 4 hours: check for stale active campaigns (no activity in 24h)
   cron.schedule('0 */4 * * *', async () => {
     try {
       const activeCampaigns = await prisma.campaign.findMany({
@@ -26,13 +23,13 @@ export function startCronJobs() {
           staleCount++;
         }
       }
+
       if (staleCount > 0) console.log(`[cron] Identified ${staleCount} stale campaign(s)`);
     } catch (err) {
       console.error('[cron] Stale check failed:', err);
     }
   });
 
-  // Daily at 23:00: Run compliance checks (Section 6.3)
   cron.schedule('0 23 * * *', async () => {
     try {
       await runDailyComplianceCheck();
@@ -42,7 +39,6 @@ export function startCronJobs() {
     }
   });
 
-  // 1st of every month at 00:00: Trust Score & Tier Review (Section 5.4, 5.5)
   cron.schedule('0 0 1 * *', async () => {
     try {
       const reps = await prisma.repProfile.findMany({ select: { id: true } });
@@ -50,9 +46,8 @@ export function startCronJobs() {
         await calculateRepTrustScore(rep.id);
         await updateRepTier(rep.id);
       }
+
       console.log('[cron] Monthly Trust Score & Tier recalculation completed');
-      
-      // Also calculate payouts for previous month (Section 7.3)
       await calculateMonthlyPayouts();
       console.log('[cron] Monthly payout calculation completed');
     } catch (err) {
@@ -60,17 +55,6 @@ export function startCronJobs() {
     }
   });
 
-  // ─── Campaign Matching & Lifecycle ──────────────────────────────────────────
-
-  // Every hour: auto-assign top rep for pending campaigns if score > 80
-  cron.schedule('30 * * * *', async () => {
-...
-  });
-
-  console.log('✅ Cron jobs started');
-}
-
-  // Every hour: auto-assign top rep for pending campaigns if score > 80
   cron.schedule('30 * * * *', async () => {
     try {
       const pendingCampaigns = await prisma.campaign.findMany({
@@ -80,7 +64,7 @@ export function startCronJobs() {
       for (const campaign of pendingCampaigns) {
         const availableReps = await prisma.repProfile.findMany({
           where: { idVerified: true, availabilityStatus: 'available' },
-          include: { _count: { select: { campaigns: true } } }
+          include: { _count: { select: { campaigns: true } } },
         });
 
         const prefs = {
@@ -89,23 +73,23 @@ export function startCronJobs() {
         };
 
         const matches = availableReps
-          .map((r: any) => ({
-            id: r.id,
-            score: calculateMatchScore(r, prefs as any).score,
-            load: r._count.campaigns
+          .map((rep: any) => ({
+            id: rep.id,
+            score: calculateMatchScore(rep, prefs as any).score,
+            load: rep._count.campaigns,
           }))
-          .filter((m: any) => m.score >= 80 && m.load < 3)
+          .filter((match: any) => match.score >= 80 && match.load < 3)
           .sort((a: any, b: any) => b.score - a.score);
 
         if (matches.length > 0) {
           const bestRep = matches[0];
           await prisma.campaign.update({
             where: { id: campaign.id },
-            data: { 
+            data: {
               repId: bestRep.id,
               status: 'ACTIVE' as any,
-              startDate: new Date()
-            }
+              startDate: new Date(),
+            },
           });
           console.log(`[cron] AUTO-ASSIGN: Campaign "${campaign.name}" assigned to rep ${bestRep.id} (Score: ${bestRep.score})`);
         }
@@ -115,7 +99,6 @@ export function startCronJobs() {
     }
   });
 
-  // Every hour: auto-complete campaigns past their end date
   cron.schedule('0 * * * *', async () => {
     try {
       const result = await prisma.campaign.updateMany({
@@ -133,7 +116,6 @@ export function startCronJobs() {
     }
   });
 
-  // Every hour: activate campaigns that have reached their start date
   cron.schedule('5 * * * *', async () => {
     try {
       const result = await prisma.campaign.updateMany({
@@ -152,7 +134,6 @@ export function startCronJobs() {
     }
   });
 
-  // Every Monday at 01:00: generate weekly earnings for active campaigns
   cron.schedule('0 1 * * 1', async () => {
     try {
       const activeCampaigns = await prisma.campaign.findMany({
@@ -170,15 +151,12 @@ export function startCronJobs() {
       for (const campaign of activeCampaigns) {
         if (!campaign.rep?.hourlyRateUsd) continue;
 
-        // Simple logic: 10 hours per week for an active campaign
-        const amount = Number(campaign.rep.hourlyRateUsd) * 10;
-        
         await prisma.repEarning.create({
           data: {
             repId: campaign.rep.id,
             campaignId: campaign.id,
             clientId: campaign.client.id,
-            amountUsd: amount,
+            amountUsd: Number(campaign.rep.hourlyRateUsd) * 10,
             periodStart: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
             periodEnd: new Date(),
             status: 'pending',
@@ -186,7 +164,7 @@ export function startCronJobs() {
         });
         createdCount++;
       }
-      
+
       if (createdCount > 0) {
         console.log(`[cron] Generated ${createdCount} weekly earning record(s)`);
       }
@@ -195,5 +173,5 @@ export function startCronJobs() {
     }
   });
 
-  console.log('✅ Cron jobs started');
+  console.log('[cron] Cron jobs started');
 }

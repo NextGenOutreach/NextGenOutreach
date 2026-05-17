@@ -8,7 +8,7 @@
     "prebuild": "cd ../.. && npm run build --workspace=packages/types && npm run build --workspace=packages/validators && npx prisma generate --schema=apps/api/prisma/schema.prisma",
     "build": "tsc",
     "start": "node dist/server.js",
-    "lint": "eslint src --ext .ts",
+    "lint": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface MaxInputProps extends React.InputHTMLAttributes<HTMLInputElement | HTMLTextAreaElement> {
-  label: string;
+  label?: string;
   accentColor?: string;
   isTextArea?: boolean;
 }
@@ -17,9 +17,11 @@ export const MaxInput: React.FC<MaxInputProps> = ({
   
   return (
     <div className="w-full space-y-2">
-      <label className="block text-sm font-black uppercase tracking-widest text-accent-4 rotate-[-1deg] w-fit">
-        {label}
-      </label>
+      {label && (
+        <label className="block text-sm font-black uppercase tracking-widest text-accent-4 rotate-[-1deg] w-fit">
+          {label}
+        </label>
+      )}
       <Component
         className={`
           w-full bg-muted/50 backdrop-blur-sm border-4 rounded-full px-6 py-4
@@ -35,3 +37,5 @@ export const MaxInput: React.FC<MaxInputProps> = ({
     </div>
   );
 };
+
+export default MaxInput;

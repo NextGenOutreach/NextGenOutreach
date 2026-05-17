@@ -124,6 +124,7 @@ model ClientProfile {
   earnings        RepEarning[]
   deals           Deal[]
   invoices        Invoice[]
+  payments        Payment[]
 
   @@map("client_profiles")
 }
@@ -152,6 +153,7 @@ model Campaign {
   earnings          RepEarning[]
   prospects         Prospect[]
   qaScores          QAScore[]
+  dailyReports      DailyReport[]
 
   @@map("campaigns")
 }
@@ -205,6 +207,21 @@ model Subscription {
   client              ClientProfile @relation(fields: [clientId], references: [id])
 
   @@map("subscriptions")
+}
+
+model Payment {
+  id          String   @id @default(cuid())
+  clientId    String   @map("client_id")
+  amountUsd   Decimal  @map("amount_usd") @db.Decimal(12, 2)
+  currency    String
+  provider    String
+  providerId  String?  @map("provider_id")
+  status      String
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  client      ClientProfile @relation(fields: [clientId], references: [id])
+
+  @@map("payments")
 }
 
 model RepEarning {
@@ -582,6 +599,7 @@ enum Plan {
   STARTER
   PRO
   MANAGED
+  ELITE
 }
 
 enum CampaignStatus {

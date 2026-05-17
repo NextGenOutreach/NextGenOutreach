@@ -16,7 +16,7 @@ export default function ClientCampaignsPage() {
     setError(null);
     try {
       const data = await fetchCampaigns();
-      setCampaigns(data);
+      setCampaigns(data.campaigns);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load campaigns');
     } finally {

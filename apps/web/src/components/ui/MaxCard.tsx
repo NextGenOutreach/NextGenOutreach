@@ -1,6 +1,6 @@
 import React from 'react';
 
-interface MaxCardProps {
+interface MaxCardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   accentColor?: string;
   shadowColor?: string;
@@ -18,8 +18,10 @@ export const MaxCard: React.FC<MaxCardProps> = ({
   dashed = false,
   className = '',
   hoverEffect = true,
+  style,
+  ...props
 }) => {
-  const rotation = asymmetry ? (Math.random() > 0.5 ? 'rotate-1' : '-rotate-1') : '';
+  const rotation = asymmetry ? 'rotate-1' : '';
   const borderStyle = dashed ? 'border-dashed' : 'border-solid';
   
   return (
@@ -35,9 +37,13 @@ export const MaxCard: React.FC<MaxCardProps> = ({
       style={{
         borderColor: accentColor,
         boxShadow: `8px 8px 0 ${shadowColor}, 16px 16px 0 ${accentColor}`,
+        ...style,
       }}
+      {...props}
     >
       {children}
     </div>
   );
 };
+
+export default MaxCard;
