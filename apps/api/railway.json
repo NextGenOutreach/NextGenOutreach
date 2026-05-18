@@ -5,7 +5,8 @@
     "buildCommand": "npm install && npm run build --workspace=packages/types && npm run build --workspace=packages/validators && cd apps/api && npx prisma generate && npm run build"
   },
   "deploy": {
-    "startCommand": "cd apps/api && npx prisma db push --accept-data-loss && node dist/server.js",
+    "deployCommand": "cd apps/api && echo \"DATABASE_URL=${DATABASE_URL:0:30}...\" && npx prisma db push --accept-data-loss",
+    "startCommand": "cd apps/api && node dist/server.js",
     "healthcheckPath": "/live",
     "healthcheckTimeout": 120,
     "restartPolicyType": "ON_FAILURE",
