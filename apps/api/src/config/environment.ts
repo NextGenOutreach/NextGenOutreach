@@ -129,7 +129,11 @@ export const MAX_FILE_SIZE = parseInt(process.env.MAX_FILE_SIZE || '5242880'); /
 export const ALLOWED_FILE_TYPES = process.env.ALLOWED_FILE_TYPES?.split(',') || ['image/jpeg', 'image/png', 'application/pdf'];
 
 // Session Configuration (from validated environment)
-export const SESSION_SECRET = env.SESSION_SECRET ?? 'fallback-session-secret-change-in-production-32c';
+if (!env.SESSION_SECRET && env.NODE_ENV === 'production') {
+  console.error('❌ SESSION_SECRET is required in production');
+  process.exit(1);
+}
+export const SESSION_SECRET = env.SESSION_SECRET ?? 'dev-session-secret-not-for-production-use-only';
 export const SESSION_MAX_AGE = env.SESSION_MAX_AGE;
 
 // Development/Testing Flags

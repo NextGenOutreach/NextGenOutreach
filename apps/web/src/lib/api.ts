@@ -2,6 +2,13 @@ import { getAuth } from 'firebase/auth';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
+interface APIMeta {
+  total?: number;
+  page?: number;
+  perPage?: number;
+  requestId?: string;
+}
+
 async function getToken(): Promise<string | null> {
   try {
     const auth = getAuth();
@@ -16,7 +23,7 @@ async function getToken(): Promise<string | null> {
 async function request<T>(
   path: string,
   options: RequestInit = {}
-): Promise<{ data: T; meta?: Record<string, unknown> }> {
+): Promise<{ data: T; meta?: APIMeta }> {
   const token = await getToken();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -56,7 +63,7 @@ export async function fetchCampaigns(params?: { status?: string; page?: number }
   if (params?.page) qs.set('page', String(params.page));
   const query = qs.toString() ? `?${qs.toString()}` : '';
   const { data, meta } = await request<APICampaign[]>(`/campaigns${query}`);
-  return { campaigns: data, total: (meta as any)?.total ?? data.length };
+  return { campaigns: data, total: meta?.total ?? data.length };
 }
 
 export async function createCampaign(body: {
@@ -114,7 +121,7 @@ export async function fetchReps(params?: {
 
   const query = qs.toString() ? `?${qs.toString()}` : '';
   const { data, meta } = await request<APIRep[]>(`/reps${query}`);
-  return { reps: data, total: (meta as any)?.total ?? data.length };
+  return { reps: data, total: meta?.total ?? data.length };
 }
 
 // ─── Admin ────────────────────────────────────────────────────────────────────
@@ -163,7 +170,7 @@ export async function fetchAdminUsers(params?: {
 
   const query = qs.toString() ? `?${qs.toString()}` : '';
   const { data, meta } = await request<APIUser[]>(`/admin/users${query}`);
-  return { users: data, total: (meta as any)?.total ?? data.length };
+  return { users: data, total: meta?.total ?? data.length };
 }
 
 export async function fetchAdminStats(): Promise<AdminStats> {
@@ -268,7 +275,7 @@ export async function fetchAdminLeads(params?: { page?: number; type?: string })
   if (params?.type) qs.set('type', params.type);
   const query = qs.toString() ? `?${qs.toString()}` : '';
   const { data, meta } = await request<AdminLead[]>(`/admin/leads${query}`);
-  return { leads: data, total: (meta as any)?.total ?? data.length };
+  return { leads: data, total: meta?.total ?? data.length };
 }
 
 export async function fetchAdminReps(): Promise<AdminRep[]> {
@@ -282,7 +289,7 @@ export async function fetchAdminEarnings(params?: { page?: number; status?: stri
   if (params?.status) qs.set('status', params.status);
   const query = qs.toString() ? `?${qs.toString()}` : '';
   const { data, meta } = await request<AdminEarning[]>(`/admin/earnings${query}`);
-  return { earnings: data, total: (meta as any)?.total ?? data.length };
+  return { earnings: data, total: meta?.total ?? data.length };
 }
 
 export interface AdminAnalytics {

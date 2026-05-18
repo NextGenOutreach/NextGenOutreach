@@ -11,7 +11,7 @@ import { errorHandler } from './middleware/errorHandler';
 import { firebaseAuthMiddleware as authMiddleware } from './middleware/firebaseAuth.middleware';
 import { asyncHandler } from './middleware/asyncHandler';
 import { requestLogger } from './middleware/requestLogger';
-import { morganStream } from './lib/logger';
+import { morganStream, logger } from './lib/logger';
 import { authRateLimit, accountLockout, recordFailedLogin, clearFailedLogin } from './lib/rateLimiter';
 import { NODE_ENV } from './config/environment';
 
@@ -161,20 +161,20 @@ app.use('/api/v1', apiRouter);
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
-  console.log(`Client connected: ${socket.id}`);
+  logger.info(`Socket connected: ${socket.id}`);
 
   socket.on('join_campaign', (campaignId: string) => {
     socket.join(`campaign_${campaignId}`);
-    console.log(`Client ${socket.id} joined campaign ${campaignId}`);
+    logger.debug(`Socket ${socket.id} joined campaign ${campaignId}`);
   });
 
   socket.on('leave_campaign', (campaignId: string) => {
     socket.leave(`campaign_${campaignId}`);
-    console.log(`Client ${socket.id} left campaign ${campaignId}`);
+    logger.debug(`Socket ${socket.id} left campaign ${campaignId}`);
   });
 
   socket.on('disconnect', () => {
-    console.log(`Client disconnected: ${socket.id}`);
+    logger.info(`Socket disconnected: ${socket.id}`);
   });
 });
 
@@ -202,9 +202,9 @@ app.use('*', (req, res) => {
 const PORT = process.env.PORT || 3001;
 
 server.listen(PORT, () => {
-  console.log(`🚀 NextGenOutreach API server running on port ${PORT}`);
-  console.log(`📊 Health check available at http://localhost:${PORT}/health`);
-  console.log(`🔌 Socket.IO server ready`);
+  logger.info(`🚀 NextGenOutreach API server running on port ${PORT}`);
+  logger.info(`📊 Health check available at http://localhost:${PORT}/health`);
+  logger.info(`🔌 Socket.IO server ready`);
   startCronJobs();
 });
 
