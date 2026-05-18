@@ -1,4 +1,4 @@
-# v2 — prisma db push moved to start (DB unreachable during Docker build)
+# v3 — prisma db push runs at build time via DATABASE_PUBLIC_URL (reachable from Docker build context)
 [phases.install]
 cmds = [
   "npm install"

@@ -4,6 +4,7 @@ import { ok, badRequest } from '../lib/response';
 import prisma from '../lib/database';
 import crypto from 'crypto';
 import { PAYFAST_PASSPHRASE, PAYFAST_MERCHANT_ID } from '../config/environment';
+import { logger, logSecurityEvent } from '../lib/logger';
 
 const router = express.Router();
 
@@ -16,7 +17,7 @@ router.post('/payfast', asyncHandler(async (req: Request, res: Response) => {
 
   // 1. Validate Merchant ID
   if (data.merchant_id !== PAYFAST_MERCHANT_ID) {
-    console.error('PayFast Webhook: Merchant ID mismatch');
+    logSecurityEvent('PayFast Webhook: Merchant ID mismatch', { received: data.merchant_id });
     return badRequest(res, 'Invalid merchant ID');
   }
 
@@ -33,7 +34,7 @@ router.post('/payfast', asyncHandler(async (req: Request, res: Response) => {
   const signature = crypto.createHash('md5').update(finalString).digest('hex');
 
   if (data.signature !== signature) {
-    console.error('PayFast Webhook: Signature mismatch');
+    logSecurityEvent('PayFast Webhook: Signature mismatch', { ip: req.ip });
     // In production, you should also verify the IP address and call back to PayFast to verify the data
     return badRequest(res, 'Invalid signature');
   }
@@ -77,7 +78,7 @@ router.post('/payfast', asyncHandler(async (req: Request, res: Response) => {
           }
         })
       ]);
-      console.log(`PayFast: Successfully processed payment for user ${userId}`);
+      logger.info(`PayFast: Successfully processed payment for user ${userId}`);
     }
   }
 

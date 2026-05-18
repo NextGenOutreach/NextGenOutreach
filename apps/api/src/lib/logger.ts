@@ -38,35 +38,31 @@ const format = winston.format.combine(
   ),
 );
 
+const isProduction = NODE_ENV === 'production';
+
 // Define which transports the logger must use
-const transports = [
-  // Console transport
+const transports: winston.transport[] = [
   new winston.transports.Console({
-    format: winston.format.combine(
-      winston.format.colorize(),
-      winston.format.simple()
-    )
-  }),
-  
-  // File transport for errors
-  new winston.transports.File({
-    filename: 'logs/error.log',
-    level: 'error',
-    format: winston.format.combine(
-      winston.format.timestamp(),
-      winston.format.json()
-    )
-  }),
-  
-  // File transport for all logs
-  new winston.transports.File({
-    filename: LOG_FILE,
-    format: winston.format.combine(
-      winston.format.timestamp(),
-      winston.format.json()
-    )
+    format: isProduction
+      ? winston.format.combine(winston.format.timestamp(), winston.format.json())
+      : winston.format.combine(winston.format.colorize(), winston.format.simple()),
   }),
 ];
+
+// File transports only in non-production (Railway has ephemeral FS)
+if (!isProduction) {
+  transports.push(
+    new winston.transports.File({
+      filename: 'logs/error.log',
+      level: 'error',
+      format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
+    }),
+    new winston.transports.File({
+      filename: LOG_FILE,
+      format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
+    })
+  );
+}
 
 // Create the logger
 export const logger = winston.createLogger({

@@ -3,6 +3,7 @@ import { RepController } from '../controllers/rep.controller';
 import { requireRole, FirebaseAuthRequest } from '../middleware/firebaseAuth.middleware';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { ok, badRequest, serverError } from '../lib/response';
+import { logger } from '../lib/logger';
 import prisma from '../lib/database';
 import multer from 'multer';
 import { uploadIdDocument } from '../lib/s3';
@@ -94,7 +95,7 @@ router.post('/upload-id', requireRole('rep'), upload.single('idDocument'), async
       profile: updated 
     });
   } catch (error) {
-    console.error('ID Upload Error:', error);
+    logger.error('ID Upload Error:', { error });
     return serverError(res, 'Failed to upload document');
   }
 }));

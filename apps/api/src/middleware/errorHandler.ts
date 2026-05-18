@@ -1,5 +1,6 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction, RequestHandler } from 'express';
 import { ZodError } from 'zod';
+import { logger } from '../lib/logger';
 
 export interface AppError extends Error {
   statusCode?: number;
@@ -76,8 +77,7 @@ export const errorHandler = (
   const code = error.code || 'INTERNAL_ERROR';
   const message = error.isOperational ? error.message : 'Internal server error';
 
-  // Log error for debugging
-  console.error(`[${requestId}] ${code}: ${message}`, error);
+  logger.error(`[${requestId}] ${code}: ${message}`, { error });
 
   res.status(statusCode).json({
     success: false,
@@ -90,7 +90,7 @@ export const errorHandler = (
   });
 };
 
-export const asyncHandler = (fn: Function) => {
+export const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => Promise<unknown>): RequestHandler => {
   return (req: Request, res: Response, next: NextFunction) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };

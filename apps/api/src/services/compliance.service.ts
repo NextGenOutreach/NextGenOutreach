@@ -1,5 +1,6 @@
 import prisma from '../lib/database';
 import { CampaignStatus, Priority, Severity } from '@prisma/client';
+import { logger } from '../lib/logger';
 
 export async function runDailyComplianceCheck() {
   const today = new Date();
@@ -15,14 +16,14 @@ export async function runDailyComplianceCheck() {
     },
   });
 
-  console.log(`[Compliance] Running check for ${activeCampaigns.length} active campaigns`);
+  logger.info(`[Compliance] Running check for ${activeCampaigns.length} active campaigns`);
 
   for (const campaign of activeCampaigns) {
     const report = campaign.dailyReports[0];
 
     // 1. Check for missing report
     if (!report) {
-      console.warn(`[Compliance] Missing daily report for campaign: ${campaign.id}`);
+      logger.warn(`[Compliance] Missing daily report for campaign: ${campaign.id}`);
       await createComplianceIncident(
         campaign.id,
         'MISSING_DAILY_REPORT',

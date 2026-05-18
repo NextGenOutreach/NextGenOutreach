@@ -1,5 +1,6 @@
 import prisma from '../lib/database';
 import { Priority, TaskStatus } from '@prisma/client';
+import { logger } from '../lib/logger';
 
 export async function createAutoTask(
   title: string,
@@ -16,7 +17,7 @@ export async function createAutoTask(
   });
 
   if (!assignee) {
-    console.warn(`[TaskService] Could not find assignee with role ${assignedToRole} for task: ${title}`);
+    logger.warn(`[TaskService] Could not find assignee with role ${assignedToRole} for task: ${title}`);
     return;
   }
 

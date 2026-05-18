@@ -1,5 +1,6 @@
 import cron from 'node-cron';
 import prisma from './database';
+import { logger } from './logger';
 import { calculateMatchScore } from '../services/matching.service';
 import { runDailyComplianceCheck } from '../services/compliance.service';
 import { calculateRepTrustScore, updateRepTier } from '../services/rep.service';
@@ -19,23 +20,23 @@ export function startCronJobs() {
       for (const campaign of activeCampaigns) {
         const lastActivity = campaign.activities[0]?.occurredAt;
         if (!lastActivity || lastActivity < threshold) {
-          console.warn(`[cron] ALERT: Campaign "${campaign.name}" (${campaign.id}) is stale. No activity in 24h.`);
+          logger.warn(`[cron] ALERT: Campaign "${campaign.name}" (${campaign.id}) is stale. No activity in 24h.`);
           staleCount++;
         }
       }
 
-      if (staleCount > 0) console.log(`[cron] Identified ${staleCount} stale campaign(s)`);
+      if (staleCount > 0) logger.info(`[cron] Identified ${staleCount} stale campaign(s)`);
     } catch (err) {
-      console.error('[cron] Stale check failed:', err);
+      logger.error('[cron] Stale check failed:', { error: err });
     }
   });
 
   cron.schedule('0 23 * * *', async () => {
     try {
       await runDailyComplianceCheck();
-      console.log('[cron] Daily compliance checks completed');
+      logger.info('[cron] Daily compliance checks completed');
     } catch (err) {
-      console.error('[cron] Compliance check failed:', err);
+      logger.error('[cron] Compliance check failed:', { error: err });
     }
   });
 
@@ -47,11 +48,11 @@ export function startCronJobs() {
         await updateRepTier(rep.id);
       }
 
-      console.log('[cron] Monthly Trust Score & Tier recalculation completed');
+      logger.info('[cron] Monthly Trust Score & Tier recalculation completed');
       await calculateMonthlyPayouts();
-      console.log('[cron] Monthly payout calculation completed');
+      logger.info('[cron] Monthly payout calculation completed');
     } catch (err) {
-      console.error('[cron] Monthly maintenance failed:', err);
+      logger.error('[cron] Monthly maintenance failed:', { error: err });
     }
   });
 
@@ -91,11 +92,11 @@ export function startCronJobs() {
               startDate: new Date(),
             },
           });
-          console.log(`[cron] AUTO-ASSIGN: Campaign "${campaign.name}" assigned to rep ${bestRep.id} (Score: ${bestRep.score})`);
+          logger.info(`[cron] AUTO-ASSIGN: Campaign "${campaign.name}" assigned to rep ${bestRep.id} (Score: ${bestRep.score})`);
         }
       }
     } catch (err) {
-      console.error('[cron] Auto-assignment failed:', err);
+      logger.error('[cron] Auto-assignment failed:', { error: err });
     }
   });
 
@@ -109,10 +110,10 @@ export function startCronJobs() {
         data: { status: 'COMPLETED' as any },
       });
       if (result.count > 0) {
-        console.log(`[cron] Auto-completed ${result.count} expired campaign(s)`);
+        logger.info(`[cron] Auto-completed ${result.count} expired campaign(s)`);
       }
     } catch (err) {
-      console.error('[cron] Failed to auto-complete campaigns:', err);
+      logger.error('[cron] Failed to auto-complete campaigns:', { error: err });
     }
   });
 
@@ -127,10 +128,10 @@ export function startCronJobs() {
         data: { status: 'ACTIVE' as any },
       });
       if (result.count > 0) {
-        console.log(`[cron] Activated ${result.count} campaign(s)`);
+        logger.info(`[cron] Activated ${result.count} campaign(s)`);
       }
     } catch (err) {
-      console.error('[cron] Failed to activate campaigns:', err);
+      logger.error('[cron] Failed to activate campaigns:', { error: err });
     }
   });
 
@@ -166,10 +167,10 @@ export function startCronJobs() {
       }
 
       if (createdCount > 0) {
-        console.log(`[cron] Generated ${createdCount} weekly earning record(s)`);
+        logger.info(`[cron] Generated ${createdCount} weekly earning record(s)`);
       }
     } catch (err) {
-      console.error('[cron] Failed to generate earnings:', err);
+      logger.error('[cron] Failed to generate earnings:', { error: err });
     }
   });
 
@@ -198,13 +199,13 @@ export function startCronJobs() {
             data: { status: 'DEAD', lastChecked: new Date() },
           });
           dead++;
-          console.warn(`[cron] Proxy ${proxy.id} (${proxy.host}:${proxy.port}) marked DEAD`);
+          logger.warn(`[cron] Proxy ${proxy.id} (${proxy.host}:${proxy.port}) marked DEAD`);
         }
       }
 
-      console.log(`[cron] Proxy health check complete — ${dead} dead of ${proxies.length}`);
+      logger.info(`[cron] Proxy health check complete — ${dead} dead of ${proxies.length}`);
     } catch (err) {
-      console.error('[cron] Proxy health check failed:', err);
+      logger.error('[cron] Proxy health check failed:', { error: err });
     }
   });
 
@@ -248,11 +249,11 @@ export function startCronJobs() {
         }
       }
 
-      console.log('[cron] LinkedIn health scores updated');
+      logger.info('[cron] LinkedIn health scores updated');
     } catch (err) {
-      console.error('[cron] LinkedIn health recalc failed:', err);
+      logger.error('[cron] LinkedIn health recalc failed:', { error: err });
     }
   });
 
-  console.log('[cron] Cron jobs started');
+  logger.info('[cron] Cron jobs started');
 }

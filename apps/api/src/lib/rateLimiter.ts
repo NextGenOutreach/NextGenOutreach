@@ -1,7 +1,7 @@
 import rateLimit from 'express-rate-limit';
 import { RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_REQUESTS } from '../config/environment';
 import { logSecurityEvent } from './logger';
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 
 // Store failed attempts in memory (in production, use Redis)
 const failedAttempts = new Map<string, { count: number; lastAttempt: number; lockedUntil?: number }>();
@@ -66,7 +66,7 @@ const clearFailedAttempts = (identifier: string) => {
 // Get client identifier (IP or user ID)
 const getClientIdentifier = (req: Request): string => {
   // Use user ID if available, otherwise IP
-  const userId = (req as any).user?.id;
+  const userId = (req as Request & { user?: { id: string } }).user?.id;
   return userId || req.ip || req.connection.remoteAddress || 'unknown';
 };
 
@@ -100,7 +100,7 @@ export const authRateLimit = rateLimit({
 });
 
 // Account lockout middleware
-export const accountLockout = (req: Request, res: Response, next: Function) => {
+export const accountLockout = (req: Request, res: Response, next: NextFunction) => {
   const identifier = getClientIdentifier(req);
   
   if (isLockedOut(identifier)) {
@@ -126,7 +126,7 @@ export const accountLockout = (req: Request, res: Response, next: Function) => {
 };
 
 // Middleware to record failed login attempts
-export const recordFailedLogin = (req: Request, res: Response, next: Function) => {
+export const recordFailedLogin = (req: Request, res: Response, next: NextFunction) => {
   const originalSend = res.send;
   
   res.send = function(data) {
@@ -162,7 +162,7 @@ export const recordFailedLogin = (req: Request, res: Response, next: Function) =
 };
 
 // Middleware to clear failed attempts on successful login
-export const clearFailedLogin = (req: Request, res: Response, next: Function) => {
+export const clearFailedLogin = (req: Request, res: Response, next: NextFunction) => {
   const originalSend = res.send;
   
   res.send = function(data) {

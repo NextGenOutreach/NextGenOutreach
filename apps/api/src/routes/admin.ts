@@ -4,6 +4,7 @@ import { ok, badRequest, forbidden } from '../lib/response';
 import { FirebaseAuthRequest } from '../middleware/firebaseAuth.middleware';
 import { calculateMatchScore } from '../services/matching.service';
 import prisma from '../lib/database';
+import { logger } from '../lib/logger';
 
 const router = express.Router();
 
@@ -342,7 +343,7 @@ router.post('/reps/import', asyncHandler(async (req: FirebaseAuthRequest, res) =
 
   // In a real app, we would fetch these from a marketplace source 
   // and create real RepProfile/User records. For now, we simulate success.
-  console.log(`[ADMIN] Importing ${repIds.length} reps: ${repIds.join(', ')}`);
+  logger.info(`[ADMIN] Importing ${repIds.length} reps: ${repIds.join(', ')}`);
   
   // Logic to "import" could be adding them to a specific list or creating placeholder users
   

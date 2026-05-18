@@ -3,6 +3,7 @@ import { asyncHandler } from '../middleware/asyncHandler';
 import { FirebaseAuthRequest } from '../middleware/firebaseAuth.middleware';
 import { ok, badRequest } from '../lib/response';
 import prisma from '../lib/database';
+import { logger } from '../lib/logger';
 
 const router = express.Router();
 
@@ -46,7 +47,7 @@ router.post('/sync-crm', asyncHandler(async (req: FirebaseAuthRequest, res: Resp
 
   // TODO: Implement actual CRM integration (HubSpot, Salesforce, etc.)
   // For now, we'll just log it and return success
-  console.log(`CRM Sync requested for client ${client.id}`);
+  logger.info(`CRM Sync requested for client ${client.id}`);
 
   // Simulate some work
   await new Promise(resolve => setTimeout(resolve, 1500));

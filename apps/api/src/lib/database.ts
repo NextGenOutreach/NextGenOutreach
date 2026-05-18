@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { DATABASE_URL } from '../config/environment';
+import { logger } from './logger';
 
 // Railway (and some other providers) supply postgres:// — Prisma requires postgresql://
 const normaliseDbUrl = (url: string) =>
@@ -25,18 +26,17 @@ const createPrismaClient = () => {
   // health-check endpoint can still respond and surface the real error.
   client.$connect()
     .then(() => {
-      console.log('✅ Database connected successfully');
+      logger.info('✅ Database connected successfully');
     })
     .catch((error: unknown) => {
-      console.error('❌ Database connection failed:', error);
-      console.error('   Check DATABASE_URL is set correctly in Railway env vars.');
+      logger.error('❌ Database connection failed — check DATABASE_URL', { error });
       // Do NOT call process.exit(1) — let the health endpoint report the issue
     });
 
   // Graceful shutdown
   const disconnect = async () => {
     await client.$disconnect();
-    console.log('🔌 Database disconnected');
+    logger.info('🔌 Database disconnected');
   };
 
   process.on('beforeExit', disconnect);

@@ -1,5 +1,6 @@
 import prisma from '../lib/database';
 import { RepTier } from '@prisma/client';
+import { logger } from '../lib/logger';
 
 const TIER_MULTIPLIERS: Record<RepTier, number> = {
   BRONZE: 1.0,
@@ -34,7 +35,7 @@ export async function calculateMonthlyPayouts() {
     },
   });
 
-  console.log(`[Billing] Calculating payouts for ${reps.length} reps`);
+  logger.info(`[Billing] Calculating payouts for ${reps.length} reps`);
 
   for (const rep of reps) {
     const activeDays = rep.dailyReports.length;

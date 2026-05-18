@@ -159,6 +159,19 @@ apiRouter.use('/daily-report', authMiddleware, dailyReportRoutes);
 
 app.use('/api/v1', apiRouter);
 
+// Socket.IO authentication — reject connections without a valid Firebase token
+io.use(async (socket, next) => {
+  try {
+    const token = socket.handshake.auth?.token as string | undefined;
+    if (!token) return next(new Error('Authentication required'));
+    const { getAdminAuth } = await import('./lib/firebaseAdmin');
+    await getAdminAuth().verifyIdToken(token);
+    next();
+  } catch {
+    next(new Error('Invalid or expired token'));
+  }
+});
+
 // Socket.IO connection handling
 io.on('connection', (socket) => {
   logger.info(`Socket connected: ${socket.id}`);
