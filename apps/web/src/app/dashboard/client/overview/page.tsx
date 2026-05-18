@@ -206,6 +206,55 @@ export default function ClientOverviewPage() {
           </div>
         )}
 
+        {/* Quick-access feature cards */}
+        <div className="grid md:grid-cols-3 gap-4">
+          {[
+            {
+              icon: '👥',
+              title: 'Live Prospect Feed',
+              desc: 'Real-time view of every prospect your reps are working — filter by campaign, status, or sentiment.',
+              href: '/dashboard/client/prospects',
+              accent: 'var(--accent-2)',
+              cta: 'View Prospects →',
+            },
+            {
+              icon: '📈',
+              title: 'ROI Dashboard',
+              desc: 'Funnel breakdown, conversion rates, and an interactive ROI calculator with projected revenue.',
+              href: '/dashboard/client/roi',
+              accent: 'var(--accent-1)',
+              cta: 'View ROI →',
+            },
+            {
+              icon: '✉️',
+              title: 'Messaging A/B',
+              desc: 'Compare reply and booking rates across campaigns ranked by performance.',
+              href: '/dashboard/client/message-ab',
+              accent: 'var(--accent-3)',
+              cta: 'View Performance →',
+            },
+          ].map((card) => (
+            <Link
+              key={card.href}
+              href={card.href}
+              className="group flex flex-col gap-3 p-5 rounded-2xl border transition-all hover:border-opacity-60"
+              style={{ borderColor: card.accent + '40', background: card.accent + '07' }}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{card.icon}</span>
+                <p className="text-sm font-black text-white">{card.title}</p>
+              </div>
+              <p className="text-xs font-medium text-white/45 leading-relaxed flex-1">{card.desc}</p>
+              <span
+                className="text-xs font-black uppercase tracking-wide self-start"
+                style={{ color: card.accent }}
+              >
+                {card.cta}
+              </span>
+            </Link>
+          ))}
+        </div>
+
         {/* Empty state / Quick actions */}
         {stats.activeCampaigns === 0 && (
           <div className="border-2 border-dashed border-white/15 rounded-3xl p-10 text-center">

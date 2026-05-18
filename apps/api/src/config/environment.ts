@@ -15,25 +15,25 @@ const envSchema = z.object({
   JWT_REFRESH_SECRET: z.string().min(32, 'JWT_REFRESH_SECRET must be at least 32 characters'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
   
-  // Database Configuration
-  DATABASE_URL: z.string().url('Invalid DATABASE_URL format'),
+  // Database Configuration — required, but accept both postgres:// and postgresql://
+  DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   
   // Admin Credentials
-  ADMIN_EMAIL: z.string().email('Invalid ADMIN_EMAIL format'),
-  ADMIN_PASSWORD: z.string().min(8, 'ADMIN_PASSWORD must be at least 8 characters'),
+  ADMIN_EMAIL: z.string().email('Invalid ADMIN_EMAIL format').optional(),
+  ADMIN_PASSWORD: z.string().min(8).optional(),
   
-  // Email Configuration
-  SENDGRID_API_KEY: z.string().min(1, 'SENDGRID_API_KEY is required'),
-  FROM_EMAIL: z.string().email('Invalid FROM_EMAIL format'),
+  // Email Configuration — optional, features gracefully degrade without it
+  SENDGRID_API_KEY: z.string().optional(),
+  FROM_EMAIL: z.string().optional(),
   
-  // Redis Configuration
-  REDIS_URL: z.string().url('Invalid REDIS_URL format'),
+  // Redis Configuration — optional, sessions fall back to in-memory
+  REDIS_URL: z.string().optional(),
   
-  // AWS Configuration
-  AWS_ACCESS_KEY_ID: z.string().min(1, 'AWS_ACCESS_KEY_ID is required'),
-  AWS_SECRET_ACCESS_KEY: z.string().min(1, 'AWS_SECRET_ACCESS_KEY is required'),
-  AWS_REGION: z.string().min(1, 'AWS_REGION is required'),
-  AWS_S3_BUCKET: z.string().min(1, 'AWS_S3_BUCKET is required'),
+  // AWS Configuration — optional, file uploads gracefully degrade
+  AWS_ACCESS_KEY_ID: z.string().optional(),
+  AWS_SECRET_ACCESS_KEY: z.string().optional(),
+  AWS_REGION: z.string().optional(),
+  AWS_S3_BUCKET: z.string().optional(),
   
   // Security Configuration
   BCRYPT_ROUNDS: z.string().transform(Number).default('12'),
@@ -41,13 +41,13 @@ const envSchema = z.object({
   RATE_LIMIT_MAX_REQUESTS: z.string().transform(Number).default('200'),
   
   // CORS Configuration
-  CORS_ORIGIN: z.string().url('Invalid CORS_ORIGIN format'),
+  CORS_ORIGIN: z.string().default('https://nextgenoutreach.co.za'),
   
-  // Firebase Configuration
-  FIREBASE_SERVICE_ACCOUNT: z.string().min(1, 'FIREBASE_SERVICE_ACCOUNT is required'),
+  // Firebase Configuration — optional for local dev, required in production
+  FIREBASE_SERVICE_ACCOUNT: z.string().optional(),
 
   // Session Configuration
-  SESSION_SECRET: z.string().min(32, 'SESSION_SECRET must be at least 32 characters'),
+  SESSION_SECRET: z.string().min(32, 'SESSION_SECRET must be at least 32 characters').optional(),
   SESSION_MAX_AGE: z.string().transform(Number).default('86400000'),
 });
 
@@ -79,21 +79,21 @@ export const PORT = env.PORT;
 export const NODE_ENV = env.NODE_ENV;
 
 // Admin Credentials (from validated environment)
-export const ADMIN_EMAIL = env.ADMIN_EMAIL;
-export const ADMIN_PASSWORD = env.ADMIN_PASSWORD;
+export const ADMIN_EMAIL = env.ADMIN_EMAIL ?? '';
+export const ADMIN_PASSWORD = env.ADMIN_PASSWORD ?? '';
 
 // Email Configuration (from validated environment)
-export const SENDGRID_API_KEY = env.SENDGRID_API_KEY;
-export const FROM_EMAIL = env.FROM_EMAIL;
+export const SENDGRID_API_KEY = env.SENDGRID_API_KEY ?? '';
+export const FROM_EMAIL = env.FROM_EMAIL ?? '';
 
 // Redis Configuration (from validated environment)
-export const REDIS_URL = env.REDIS_URL;
+export const REDIS_URL = env.REDIS_URL ?? '';
 
 // AWS Configuration (from validated environment)
-export const AWS_ACCESS_KEY_ID = env.AWS_ACCESS_KEY_ID;
-export const AWS_SECRET_ACCESS_KEY = env.AWS_SECRET_ACCESS_KEY;
-export const AWS_REGION = env.AWS_REGION;
-export const AWS_S3_BUCKET = env.AWS_S3_BUCKET;
+export const AWS_ACCESS_KEY_ID = env.AWS_ACCESS_KEY_ID ?? '';
+export const AWS_SECRET_ACCESS_KEY = env.AWS_SECRET_ACCESS_KEY ?? '';
+export const AWS_REGION = env.AWS_REGION ?? 'us-east-1';
+export const AWS_S3_BUCKET = env.AWS_S3_BUCKET ?? '';
 
 // PayFast Configuration
 export const PAYFAST_MERCHANT_ID = process.env.PAYFAST_MERCHANT_ID || '';
@@ -129,7 +129,7 @@ export const MAX_FILE_SIZE = parseInt(process.env.MAX_FILE_SIZE || '5242880'); /
 export const ALLOWED_FILE_TYPES = process.env.ALLOWED_FILE_TYPES?.split(',') || ['image/jpeg', 'image/png', 'application/pdf'];
 
 // Session Configuration (from validated environment)
-export const SESSION_SECRET = env.SESSION_SECRET;
+export const SESSION_SECRET = env.SESSION_SECRET ?? 'fallback-session-secret-change-in-production-32c';
 export const SESSION_MAX_AGE = env.SESSION_MAX_AGE;
 
 // Development/Testing Flags

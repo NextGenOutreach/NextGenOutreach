@@ -72,6 +72,11 @@ model RepProfile {
   qaScores            QAScore[]
   training            RepTraining[]
   dailyReports        DailyReport[]
+  browserProfiles     BrowserProfile[]
+  activityLogs        ActivityLog[]
+  outreachSequences   OutreachSequence[]
+  linkedInHealth      LinkedInHealthScore?
+  repBadges           RepBadge[]
 
   @@map("rep_profiles")
 }
@@ -154,6 +159,8 @@ model Campaign {
   prospects         Prospect[]
   qaScores          QAScore[]
   dailyReports      DailyReport[]
+  activityLogs      ActivityLog[]
+  outreachSequences OutreachSequence[]
 
   @@map("campaigns")
 }
@@ -390,10 +397,11 @@ model Prospect {
   updatedAt       DateTime    @updatedAt @map("updated_at")
 
   // Relations
-  campaign        Campaign    @relation(fields: [campaignId], references: [id])
-  rep             RepProfile  @relation(fields: [repId], references: [id])
-  activities      CRMActivity[]
-  deals           Deal[]
+  campaign          Campaign          @relation(fields: [campaignId], references: [id])
+  rep               RepProfile        @relation(fields: [repId], references: [id])
+  activities        CRMActivity[]
+  deals             Deal[]
+  outreachSequence  OutreachSequence?
 
   @@map("prospects")
 }
@@ -631,6 +639,7 @@ enum ActivityType {
 enum BrowserProvider {
   GOLOGIN
   BITBROWSER
+  ADSPOWER
 }
 
 enum SessionStatus {
@@ -639,4 +648,205 @@ enum SessionStatus {
   ACTIVE
   CLOSED
   ERROR
+}
+
+enum ProxyStatus {
+  ACTIVE
+  DEAD
+  FLAGGED
+  UNASSIGNED
+}
+
+enum SequenceStep {
+  DAY_1
+  DAY_4
+  DAY_8
+}
+
+enum SequenceStatus {
+  QUEUED
+  IN_PROGRESS
+  NO_RESPONSE
+  REPLIED
+  MEETING_BOOKED
+  SKIPPED
+}
+
+enum MessageType {
+  DIRECT
+  CAMPAIGN_CHANNEL
+  ESCALATION
+}
+
+// ─── Browser Profile ───────────────────────────────────────────────────────────
+model BrowserProfile {
+  id                  String          @id @default(cuid())
+  repId               String          @map("rep_id")
+  campaignId          String?         @map("campaign_id")
+  provider            BrowserProvider
+  externalProfileId   String?         @map("external_profile_id")
+  linkedinAccountEmail String?        @map("linkedin_account_email")
+  proxyId             String?         @map("proxy_id")
+  lastLaunched        DateTime?       @map("last_launched")
+  sessionStatus       SessionStatus   @default(IDLE) @map("session_status")
+  warmupDay           Int             @default(0) @map("warmup_day")
+  fingerprintConfig   Json?           @map("fingerprint_config")
+  notes               String?
+  createdAt           DateTime        @default(now()) @map("created_at")
+  updatedAt           DateTime        @updatedAt @map("updated_at")
+
+  rep                 RepProfile      @relation(fields: [repId], references: [id])
+  proxy               Proxy?          @relation(fields: [proxyId], references: [id])
+
+  @@map("browser_profiles")
+}
+
+// ─── Proxy ─────────────────────────────────────────────────────────────────────
+model Proxy {
+  id                  String      @id @default(cuid())
+  provider            String
+  ipAddress           String      @map("ip_address")
+  host                String
+  port                Int
+  username            String?
+  password            String?
+  country             String
+  status              ProxyStatus @default(UNASSIGNED)
+  lastChecked         DateTime?   @map("last_checked")
+  rotationSchedule    String?     @map("rotation_schedule")
+  notes               String?
+  createdAt           DateTime    @default(now()) @map("created_at")
+  updatedAt           DateTime    @updatedAt @map("updated_at")
+
+  browserProfiles     BrowserProfile[]
+
+  @@map("proxies")
+}
+
+// ─── Activity Log (rep actions for auto-report) ────────────────────────────────
+model ActivityLog {
+  id          String      @id @default(cuid())
+  repId       String      @map("rep_id")
+  campaignId  String      @map("campaign_id")
+  prospectId  String?     @map("prospect_id")
+  actionType  ActivityType @map("action_type")
+  metadata    Json?
+  loggedAt    DateTime    @default(now()) @map("logged_at")
+
+  rep         RepProfile  @relation(fields: [repId], references: [id])
+  campaign    Campaign    @relation(fields: [campaignId], references: [id])
+
+  @@map("activity_logs")
+}
+
+// ─── Outreach Sequence ─────────────────────────────────────────────────────────
+model OutreachSequence {
+  id              String          @id @default(cuid())
+  prospectId      String          @map("prospect_id")
+  repId           String          @map("rep_id")
+  campaignId      String          @map("campaign_id")
+  currentStep     SequenceStep    @default(DAY_1) @map("current_step")
+  status          SequenceStatus  @default(QUEUED)
+  day1SentAt      DateTime?       @map("day1_sent_at")
+  day4SentAt      DateTime?       @map("day4_sent_at")
+  day8SentAt      DateTime?       @map("day8_sent_at")
+  day4DueAt       DateTime?       @map("day4_due_at")
+  day8DueAt       DateTime?       @map("day8_due_at")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  prospect        Prospect        @relation(fields: [prospectId], references: [id])
+  rep             RepProfile      @relation(fields: [repId], references: [id])
+  campaign        Campaign        @relation(fields: [campaignId], references: [id])
+
+  @@unique([prospectId])
+  @@map("outreach_sequences")
+}
+
+// ─── LinkedIn Health Score ─────────────────────────────────────────────────────
+model LinkedInHealthScore {
+  id                        String      @id @default(cuid())
+  repId                     String      @map("rep_id")
+  score                     Int         @default(70)
+  acceptanceRate7d          Decimal?    @map("acceptance_rate_7d") @db.Decimal(5, 2)
+  daysSinceLastRestriction  Int?        @map("days_since_last_restriction")
+  warmupDay                 Int         @default(0) @map("warmup_day")
+  profileCompletenessScore  Int?        @map("profile_completeness_score")
+  recentWarning             Boolean     @default(false) @map("recent_warning")
+  connectionVelocityAlert   Boolean     @default(false) @map("connection_velocity_alert")
+  lastCalculatedAt          DateTime    @default(now()) @map("last_calculated_at")
+  createdAt                 DateTime    @default(now()) @map("created_at")
+
+  rep                       RepProfile  @relation(fields: [repId], references: [id])
+
+  @@unique([repId])
+  @@map("linkedin_health_scores")
+}
+
+// ─── Internal Messaging ────────────────────────────────────────────────────────
+model MessageThread {
+  id              String          @id @default(cuid())
+  type            MessageType     @default(DIRECT)
+  campaignId      String?         @map("campaign_id")
+  prospectId      String?         @map("prospect_id")
+  subject         String?
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  participants    ThreadParticipant[]
+  messages        InternalMessage[]
+
+  @@map("message_threads")
+}
+
+model ThreadParticipant {
+  id          String        @id @default(cuid())
+  threadId    String        @map("thread_id")
+  userId      String        @map("user_id")
+  joinedAt    DateTime      @default(now()) @map("joined_at")
+
+  thread      MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@unique([threadId, userId])
+  @@map("thread_participants")
+}
+
+model InternalMessage {
+  id          String        @id @default(cuid())
+  threadId    String        @map("thread_id")
+  senderId    String        @map("sender_id")
+  body        String
+  read        Boolean       @default(false)
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  thread      MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@map("internal_messages")
+}
+
+// ─── Gamification ─────────────────────────────────────────────────────────────
+model Badge {
+  id          String      @id @default(cuid())
+  key         String      @unique
+  name        String
+  description String
+  icon        String
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  repBadges   RepBadge[]
+
+  @@map("badges")
+}
+
+model RepBadge {
+  id          String      @id @default(cuid())
+  repId       String      @map("rep_id")
+  badgeId     String      @map("badge_id")
+  awardedAt   DateTime    @default(now()) @map("awarded_at")
+
+  rep         RepProfile  @relation(fields: [repId], references: [id])
+  badge       Badge       @relation(fields: [badgeId], references: [id])
+
+  @@unique([repId, badgeId])
+  @@map("rep_badges")
 }

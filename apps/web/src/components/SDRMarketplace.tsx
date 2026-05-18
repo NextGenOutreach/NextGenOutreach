@@ -4,6 +4,8 @@ import React, { useState, useMemo } from 'react';
 import { MaxCard } from './ui/MaxCard';
 import { MaxButton } from './ui/MaxButton';
 import { FEATURED_REPS, NICHES, type RepProfile, type RepAvailability } from '@/data/reps';
+import { useAuth } from '@/lib/auth-context';
+import { importMarketplaceReps } from '@/lib/api';
 
 const accents = ["var(--accent-1)", "var(--accent-2)", "var(--accent-3)", "var(--accent-4)", "var(--accent-5)"];
 
@@ -26,18 +28,38 @@ const AVAILABILITY_COLOR: Record<RepAvailability, string> = {
   unavailable: "rgba(255,255,255,0.3)",
 };
 
-function RepCard({ rep, idx }: { rep: RepProfile; idx: number }) {
+function RepCard({ 
+  rep, 
+  idx, 
+  isSelected, 
+  onSelect, 
+  showSelect 
+}: { 
+  rep: RepProfile; 
+  idx: number;
+  isSelected?: boolean;
+  onSelect?: (id: string) => void;
+  showSelect?: boolean;
+}) {
   return (
     <MaxCard
-      accentColor={accents[idx % accents.length]}
-      shadowColor={accents[(idx + 1) % accents.length]}
+      accentColor={isSelected ? "var(--accent-1)" : accents[idx % accents.length]}
+      shadowColor={isSelected ? "var(--accent-3)" : accents[(idx + 1) % accents.length]}
       dashed={idx % 2 === 0}
-      className="flex flex-col justify-between gap-6"
+      className={`flex flex-col justify-between gap-6 transition-all duration-300 ${isSelected ? 'scale-[1.02] border-accent-1' : ''}`}
     >
       <div>
         <div className="flex items-start justify-between gap-3 mb-3">
-          <div>
+          <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
+              {showSelect && (
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={() => onSelect?.(rep.id)}
+                  className="w-5 h-5 rounded border-2 border-accent-1 bg-transparent checked:bg-accent-1 focus:ring-accent-1 cursor-pointer mr-2"
+                />
+              )}
               <h3 className="text-xl font-black uppercase tracking-tight text-white leading-tight">{rep.name}</h3>
               {rep.verified && (
                 <span className="text-accent-2 text-sm" title="ID Verified">✓</span>
@@ -111,9 +133,14 @@ interface SDRMarketplaceProps {
 }
 
 export const SDRMarketplace: React.FC<SDRMarketplaceProps> = ({ prefilterNiche }) => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+  
   const [nicheFilter, setNicheFilter] = useState(prefilterNiche ?? "all");
   const [availFilter, setAvailFilter] = useState<"all" | RepAvailability>("all");
   const [sortBy, setSortBy] = useState<"rating" | "rate" | "followers">("rating");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isImporting, setIsImporting] = useState(false);
 
   const filtered = useMemo(() => {
     let reps = [...FEATURED_REPS];
@@ -126,6 +153,29 @@ export const SDRMarketplace: React.FC<SDRMarketplaceProps> = ({ prefilterNiche }
     });
     return reps;
   }, [nicheFilter, availFilter, sortBy]);
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleImport = async () => {
+    if (selectedIds.size === 0) return;
+    setIsImporting(true);
+    try {
+      const { message } = await importMarketplaceReps(Array.from(selectedIds));
+      alert(message);
+      setSelectedIds(new Set());
+    } catch (error) {
+      alert("Failed to import reps: " + (error instanceof Error ? error.message : "Unknown error"));
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   return (
     <div className="w-full">
@@ -173,10 +223,46 @@ export const SDRMarketplace: React.FC<SDRMarketplaceProps> = ({ prefilterNiche }
         </p>
       </div>
 
+      {isAdmin && selectedIds.size > 0 && (
+        <div className="sticky top-4 z-50 mb-8 p-4 bg-accent-1/10 border-4 border-accent-1 rounded-3xl backdrop-blur-xl flex items-center justify-between shadow-[0_0_50px_rgba(255,58,242,0.3)]">
+          <div className="flex items-center gap-4 ml-4">
+            <span className="text-2xl">⚡</span>
+            <div>
+              <p className="text-sm font-black uppercase text-white tracking-widest">
+                {selectedIds.size} Rep{selectedIds.size !== 1 ? 's' : ''} Selected
+              </p>
+              <p className="text-[10px] font-bold text-white/50 uppercase tracking-tight">Admin Tactical Import Tool</p>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <button 
+              onClick={() => setSelectedIds(new Set())}
+              className="px-6 py-2 text-xs font-black uppercase text-white/60 hover:text-white transition-colors"
+            >
+              Cancel
+            </button>
+            <MaxButton 
+              size="sm" 
+              onClick={handleImport}
+              loading={isImporting}
+            >
+              Import to Squadron →
+            </MaxButton>
+          </div>
+        </div>
+      )}
+
       {filtered.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {filtered.map((rep, idx) => (
-            <RepCard key={rep.id} rep={rep} idx={idx} />
+            <RepCard 
+              key={rep.id} 
+              rep={rep} 
+              idx={idx} 
+              isSelected={selectedIds.has(rep.id)}
+              onSelect={toggleSelect}
+              showSelect={isAdmin}
+            />
           ))}
         </div>
       ) : (

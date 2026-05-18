@@ -30,6 +30,14 @@ import prospectRoutes from './routes/prospects';
 import taskRoutes from './routes/tasks';
 import webhookRoutes from './routes/webhooks';
 import healthRoutes from './routes/health';
+import browserProfileRoutes from './routes/browser-profiles';
+import proxyRoutes from './routes/proxies';
+import activityLogRoutes from './routes/activity-log';
+import outreachQueueRoutes from './routes/outreach-queue';
+import linkedinHealthRoutes from './routes/linkedin-health';
+import commsRoutes from './routes/comms';
+import gamificationRoutes from './routes/gamification';
+import dailyReportRoutes from './routes/daily-report';
 import { startCronJobs } from './lib/cron';
 
 // Load environment variables
@@ -140,6 +148,14 @@ apiRouter.use('/rep', authMiddleware, repDashboardRoutes);
 apiRouter.use('/crm', authMiddleware, crmRoutes);
 apiRouter.use('/prospects', authMiddleware, prospectRoutes);
 apiRouter.use('/tasks', authMiddleware, taskRoutes);
+apiRouter.use('/browser-profiles', authMiddleware, browserProfileRoutes);
+apiRouter.use('/proxies', authMiddleware, proxyRoutes);
+apiRouter.use('/activity-log', authMiddleware, activityLogRoutes);
+apiRouter.use('/outreach-queue', authMiddleware, outreachQueueRoutes);
+apiRouter.use('/linkedin-health', authMiddleware, linkedinHealthRoutes);
+apiRouter.use('/comms', authMiddleware, commsRoutes);
+apiRouter.use('/gamification', authMiddleware, gamificationRoutes);
+apiRouter.use('/daily-report', authMiddleware, dailyReportRoutes);
 
 app.use('/api/v1', apiRouter);
 

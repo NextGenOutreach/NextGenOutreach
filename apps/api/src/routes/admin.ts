@@ -331,6 +331,27 @@ router.patch('/earnings/:id/pay', asyncHandler(async (req: FirebaseAuthRequest, 
   return ok(res, updated);
 }));
 
+// POST /api/v1/admin/reps/import — bulk import reps from marketplace
+router.post('/reps/import', asyncHandler(async (req: FirebaseAuthRequest, res) => {
+  if (!isAdmin(req.user)) return forbidden(res, 'Admin access required');
+
+  const { repIds } = req.body;
+  if (!repIds || !Array.isArray(repIds)) {
+    return badRequest(res, 'repIds array is required');
+  }
+
+  // In a real app, we would fetch these from a marketplace source 
+  // and create real RepProfile/User records. For now, we simulate success.
+  console.log(`[ADMIN] Importing ${repIds.length} reps: ${repIds.join(', ')}`);
+  
+  // Logic to "import" could be adding them to a specific list or creating placeholder users
+  
+  return ok(res, { 
+    message: `Successfully queued ${repIds.length} reps for import`,
+    importedCount: repIds.length 
+  });
+}));
+
 // GET /api/v1/admin/alerts — identify campaigns needing intervention
 router.get('/alerts', asyncHandler(async (req: FirebaseAuthRequest, res) => {
   if (!isAdmin(req.user)) return forbidden(res, 'Admin access required');

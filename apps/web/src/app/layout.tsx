@@ -1,25 +1,9 @@
 import type { Metadata } from "next";
-import { Outfit, DM_Sans, Bungee } from "next/font/google";
 import { Providers } from "@/components/Providers";
 import "./globals.css";
 
-const outfit = Outfit({
-  variable: "--font-outfit",
-  subsets: ["latin"],
-});
-
-const dmSans = DM_Sans({
-  variable: "--font-dm-sans",
-  subsets: ["latin"],
-});
-
-const bungee = Bungee({
-  variable: "--font-bungee",
-  weight: "400",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
+  manifest: '/manifest.json',
   title: {
     default: "NextGenOutreach | World's #1 LinkedIn SDR & Reps Marketplace",
     template: "%s | NextGenOutreach"
@@ -52,10 +36,16 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${outfit.variable} ${dmSans.variable} ${bungee.variable} h-full antialiased`}
+      className="h-full antialiased"
       suppressHydrationWarning
     >
       <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#ff3af2" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="NextGen" />
         {plausibleDomain && (
           <script
             defer
@@ -63,6 +53,7 @@ export default function RootLayout({
             src="https://plausible.io/js/script.js"
           />
         )}
+        <script dangerouslySetInnerHTML={{ __html: `if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js')); }` }} />
       </head>
       <body className="min-h-full flex flex-col"><Providers>{children}</Providers></body>
     </html>

@@ -173,5 +173,86 @@ export function startCronJobs() {
     }
   });
 
+  // ─── Proxy health check — daily at 06:00 ──────────────────────────────────
+  cron.schedule('0 6 * * *', async () => {
+    try {
+      const proxies: Array<{ id: string; host: string; port: number }> = await (prisma as any).proxy.findMany({
+        where: { status: { not: 'DEAD' } },
+        select: { id: true, host: true, port: true },
+      });
+
+      let dead = 0;
+      for (const proxy of proxies) {
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 8000);
+          await fetch(`http://${proxy.host}:${proxy.port}`, { signal: controller.signal });
+          clearTimeout(timeout);
+          await (prisma as any).proxy.update({
+            where: { id: proxy.id },
+            data: { lastChecked: new Date() },
+          });
+        } catch {
+          await (prisma as any).proxy.update({
+            where: { id: proxy.id },
+            data: { status: 'DEAD', lastChecked: new Date() },
+          });
+          dead++;
+          console.warn(`[cron] Proxy ${proxy.id} (${proxy.host}:${proxy.port}) marked DEAD`);
+        }
+      }
+
+      console.log(`[cron] Proxy health check complete — ${dead} dead of ${proxies.length}`);
+    } catch (err) {
+      console.error('[cron] Proxy health check failed:', err);
+    }
+  });
+
+  // ─── LinkedIn health score recalculation — nightly at 02:00 ──────────────
+  cron.schedule('0 2 * * *', async () => {
+    try {
+      const reps: Array<{ id: string; campaigns: Array<{ activities: Array<{ activityType: string; occurredAt: Date }> }> }> =
+        await prisma.repProfile.findMany({
+          include: {
+            campaigns: {
+              include: {
+                activities: {
+                  where: { occurredAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } },
+                  select: { activityType: true, occurredAt: true },
+                },
+              },
+            },
+          },
+        });
+
+      for (const rep of reps) {
+        const sent = rep.campaigns.flatMap((c) =>
+          c.activities.filter((a) => a.activityType === 'CONNECTION_SENT')
+        ).length;
+        const accepted = rep.campaigns.flatMap((c) =>
+          c.activities.filter((a) => a.activityType === 'CONNECTION_ACCEPTED')
+        ).length;
+        const rate = sent > 0 ? accepted / sent : null;
+
+        const existing: any = await (prisma as any).linkedInHealthScore.findUnique({ where: { repId: rep.id } });
+        if (existing) {
+          const score = Math.max(0, Math.min(100, existing.score + (rate !== null && rate < 0.25 ? -5 : 0)));
+          await (prisma as any).linkedInHealthScore.update({
+            where: { repId: rep.id },
+            data: {
+              acceptanceRate7d: rate !== null ? rate : undefined,
+              score,
+              lastCalculatedAt: new Date(),
+            },
+          });
+        }
+      }
+
+      console.log('[cron] LinkedIn health scores updated');
+    } catch (err) {
+      console.error('[cron] LinkedIn health recalc failed:', err);
+    }
+  });
+
   console.log('[cron] Cron jobs started');
 }

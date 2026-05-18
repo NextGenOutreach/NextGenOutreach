@@ -202,6 +202,14 @@ export async function payEarning(id: string): Promise<any> {
   return data;
 }
 
+export async function importMarketplaceReps(repIds: string[]): Promise<{ message: string; importedCount: number }> {
+  const { data } = await request<{ message: string; importedCount: number }>('/admin/reps/import', {
+    method: 'POST',
+    body: JSON.stringify({ repIds }),
+  });
+  return data;
+}
+
 // ─── Admin Extended ───────────────────────────────────────────────────────────
 
 export interface AdminActivity {

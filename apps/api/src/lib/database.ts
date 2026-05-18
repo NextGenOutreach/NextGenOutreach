@@ -1,6 +1,10 @@
 import { PrismaClient } from '@prisma/client';
 import { DATABASE_URL } from '../config/environment';
 
+// Railway (and some other providers) supply postgres:// — Prisma requires postgresql://
+const normaliseDbUrl = (url: string) =>
+  url.startsWith('postgres://') ? url.replace('postgres://', 'postgresql://') : url;
+
 // Global variable to store Prisma client instance
 declare global {
   var __prisma: PrismaClient | undefined;
@@ -11,20 +15,22 @@ const createPrismaClient = () => {
   const client = new PrismaClient({
     datasources: {
       db: {
-        url: DATABASE_URL,
+        url: normaliseDbUrl(DATABASE_URL),
       },
     },
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
   });
 
-  // Handle connection errors
+  // Handle connection errors — log but don't kill the process so Railway
+  // health-check endpoint can still respond and surface the real error.
   client.$connect()
     .then(() => {
       console.log('✅ Database connected successfully');
     })
     .catch((error: unknown) => {
       console.error('❌ Database connection failed:', error);
-      process.exit(1);
+      console.error('   Check DATABASE_URL is set correctly in Railway env vars.');
+      // Do NOT call process.exit(1) — let the health endpoint report the issue
     });
 
   // Graceful shutdown
