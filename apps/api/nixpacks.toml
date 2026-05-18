@@ -1,3 +1,4 @@
+# v2 — prisma db push moved to start (DB unreachable during Docker build)
 [phases.install]
 cmds = [
   "npm install"
