@@ -5,7 +5,7 @@
     "buildCommand": "NODE_ENV=development npm install && npm run build --workspace=packages/types && npm run build --workspace=packages/validators && (cd /app/apps/api && npx prisma generate && npm run build)"
   },
   "deploy": {
-    "startCommand": "npx prisma db push --schema /app/apps/api/prisma/schema.prisma --accept-data-loss && node /app/apps/api/dist/server.js",
+    "startCommand": "node /app/apps/api/dist/server.js",
     "healthcheckPath": "/live",
     "healthcheckTimeout": 120,
     "restartPolicyType": "ON_FAILURE",
