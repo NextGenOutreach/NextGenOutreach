@@ -8,8 +8,8 @@ cmds = [
 cmds = [
   "npm run build --workspace=packages/types",
   "npm run build --workspace=packages/validators",
-  "cd apps/api && npx prisma generate && npm run build"
+  "cd /app/apps/api && npx prisma generate && npm run build"
 ]
 
 [start]
-cmd = "cd apps/api && npx prisma db push --accept-data-loss && node dist/server.js"
+cmd = "cd /app/apps/api && npx prisma db push --accept-data-loss && node dist/server.js"
