@@ -44,8 +44,12 @@ export async function calculateMonthlyPayouts() {
     const multiplier = TIER_MULTIPLIERS[rep.tier];
     let totalAmount = activeDays * BASE_DAILY_RATE * multiplier;
 
-    // Add performance bonuses (mock logic for now)
-    const replyRate = 0.09; // Assuming they hit >7% bonus from Section 7.3
+    // HIGH FIX: Calculate actual reply rate from daily reports
+    const totalReplies = rep.dailyReports.reduce((sum, r) => sum + r.repliesReceived, 0);
+    const totalMessages = rep.dailyReports.reduce((sum, r) => sum + r.messagesSent, 0);
+    const replyRate = totalMessages > 0 ? totalReplies / totalMessages : 0;
+    
+    // Bonus for >7% reply rate
     if (replyRate >= 0.07) {
       totalAmount += totalAmount * 0.10;
     }

@@ -2,20 +2,21 @@ import express, { Response } from 'express';
 import prisma from '../lib/database';
 import { ok, created, badRequest, notFound } from '../lib/response';
 import { requireRole, FirebaseAuthRequest } from '../middleware/firebaseAuth.middleware';
+import { asyncHandler } from '../middleware/asyncHandler';
 
 const router = express.Router();
 
 // ─── GET /proxies ─────────────────────────────────────────────────────────────
-router.get('/', requireRole('admin', 'super_admin'), async (_req: FirebaseAuthRequest, res: Response) => {
+router.get('/', requireRole('admin', 'super_admin'), asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   const proxies = await prisma.proxy.findMany({
     orderBy: { createdAt: 'desc' },
     include: { browserProfiles: { select: { id: true, repId: true, linkedinAccountEmail: true } } },
   });
   return ok(res, proxies);
-});
+}));
 
 // ─── GET /proxies/available ───────────────────────────────────────────────────
-router.get('/available', requireRole('admin', 'super_admin'), async (req: FirebaseAuthRequest, res: Response) => {
+router.get('/available', requireRole('admin', 'super_admin'), asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   const { country } = req.query as { country?: string };
 
   const proxies = await prisma.proxy.findMany({
@@ -27,10 +28,10 @@ router.get('/available', requireRole('admin', 'super_admin'), async (req: Fireba
   });
 
   return ok(res, proxies);
-});
+}));
 
 // ─── POST /proxies ────────────────────────────────────────────────────────────
-router.post('/', requireRole('admin', 'super_admin'), async (req: FirebaseAuthRequest, res: Response) => {
+router.post('/', requireRole('admin', 'super_admin'), asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   const { provider, ipAddress, host, port, username, password, country, rotationSchedule, notes } = req.body as {
     provider: string;
     ipAddress: string;
@@ -52,10 +53,10 @@ router.post('/', requireRole('admin', 'super_admin'), async (req: FirebaseAuthRe
   });
 
   return created(res, proxy);
-});
+}));
 
 // ─── POST /proxies/bulk ───────────────────────────────────────────────────────
-router.post('/bulk', requireRole('admin', 'super_admin'), async (req: FirebaseAuthRequest, res: Response) => {
+router.post('/bulk', requireRole('admin', 'super_admin'), asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   const { proxies } = req.body as {
     proxies: Array<{
       provider: string; ipAddress: string; host: string;
@@ -70,10 +71,10 @@ router.post('/bulk', requireRole('admin', 'super_admin'), async (req: FirebaseAu
 
   const result = await prisma.proxy.createMany({ data: proxies, skipDuplicates: true });
   return created(res, { created: result.count });
-});
+}));
 
 // ─── PATCH /proxies/:id ───────────────────────────────────────────────────────
-router.patch('/:id', requireRole('admin', 'super_admin'), async (req: FirebaseAuthRequest, res: Response) => {
+router.patch('/:id', requireRole('admin', 'super_admin'), asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   const proxy = await prisma.proxy.findUnique({ where: { id: req.params.id } });
   if (!proxy) return notFound(res, 'Proxy not found');
 
@@ -89,10 +90,10 @@ router.patch('/:id', requireRole('admin', 'super_admin'), async (req: FirebaseAu
   });
 
   return ok(res, updated);
-});
+}));
 
 // ─── DELETE /proxies/:id ──────────────────────────────────────────────────────
-router.delete('/:id', requireRole('admin', 'super_admin'), async (req: FirebaseAuthRequest, res: Response) => {
+router.delete('/:id', requireRole('admin', 'super_admin'), asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   const proxy = await prisma.proxy.findUnique({ where: { id: req.params.id } });
   if (!proxy) return notFound(res, 'Proxy not found');
 
@@ -101,6 +102,6 @@ router.delete('/:id', requireRole('admin', 'super_admin'), async (req: FirebaseA
 
   await prisma.proxy.delete({ where: { id: req.params.id } });
   return ok(res, { deleted: true });
-});
+}));
 
 export default router;

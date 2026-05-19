@@ -1,12 +1,13 @@
 import express, { Response } from 'express';
 import prisma from '../lib/database';
 import { ok, created, badRequest, notFound, forbidden } from '../lib/response';
-import { FirebaseAuthRequest } from '../middleware/firebaseAuth.middleware';
+import { requireRole, FirebaseAuthRequest } from '../middleware/firebaseAuth.middleware';
+import { asyncHandler } from '../middleware/asyncHandler';
 
 const router = express.Router();
 
 // ─── GET /comms/threads  (threads the current user participates in) ─────────
-router.get('/threads', async (req: FirebaseAuthRequest, res: Response) => {
+router.get('/threads', asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   const threads: any[] = await (prisma as any).messageThread.findMany({
     where: {
       participants: { some: { userId: req.user!.id } },
@@ -23,10 +24,10 @@ router.get('/threads', async (req: FirebaseAuthRequest, res: Response) => {
   });
 
   return ok(res, threads);
-});
+}));
 
 // ─── POST /comms/threads  (create a DM or campaign channel thread) ────────────
-router.post('/threads', async (req: FirebaseAuthRequest, res: Response) => {
+router.post('/threads', asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   const { type, participantIds, campaignId, prospectId, subject } = req.body as {
     type?: 'DIRECT' | 'CAMPAIGN_CHANNEL' | 'ESCALATION';
     participantIds: string[];
@@ -57,10 +58,10 @@ router.post('/threads', async (req: FirebaseAuthRequest, res: Response) => {
   });
 
   return created(res, thread);
-});
+}));
 
 // ─── GET /comms/threads/:id/messages ─────────────────────────────────────────
-router.get('/threads/:id/messages', async (req: FirebaseAuthRequest, res: Response) => {
+router.get('/threads/:id/messages', asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   const thread: any = await (prisma as any).messageThread.findUnique({
     where: { id: req.params.id },
     include: {
@@ -75,10 +76,10 @@ router.get('/threads/:id/messages', async (req: FirebaseAuthRequest, res: Respon
   if (!isMember) return forbidden(res, 'Not a thread participant');
 
   return ok(res, thread.messages);
-});
+}));
 
 // ─── POST /comms/threads/:id/messages  (send a message) ──────────────────────
-router.post('/threads/:id/messages', async (req: FirebaseAuthRequest, res: Response) => {
+router.post('/threads/:id/messages', asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   const { body } = req.body as { body: string };
   if (!body?.trim()) return badRequest(res, 'Message body required');
 
@@ -102,10 +103,10 @@ router.post('/threads/:id/messages', async (req: FirebaseAuthRequest, res: Respo
   });
 
   return created(res, message);
-});
+}));
 
 // ─── POST /comms/escalate  (rep flags a prospect for CSM guidance) ────────────
-router.post('/escalate', async (req: FirebaseAuthRequest, res: Response) => {
+router.post('/escalate', requireRole('rep', 'admin', 'super_admin'), asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   const { prospectId, note } = req.body as { prospectId: string; note?: string };
   if (!prospectId) return badRequest(res, 'prospectId required');
 
@@ -145,6 +146,6 @@ router.post('/escalate', async (req: FirebaseAuthRequest, res: Response) => {
   });
 
   return created(res, thread);
-});
+}));
 
 export default router;

@@ -1,4 +1,5 @@
 import express, { Response } from 'express';
+import { asyncHandler } from '../middleware/asyncHandler';
 import { ok } from '../lib/response';
 import { requireRole, FirebaseAuthRequest } from '../middleware/firebaseAuth.middleware';
 import prisma from '../lib/database';
@@ -8,7 +9,7 @@ const router = express.Router();
 // ─── Tasks ────────────────────────────────────────────────────────────────────
 // A "task" for a rep = an active campaign assigned to them.
 // The campaign's CampaignActivities feed the completed count.
-router.get('/tasks', requireRole('rep'), async (req: FirebaseAuthRequest, res: Response) => {
+router.get('/tasks', requireRole('rep'), asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   const repProfile = await prisma.repProfile.findUnique({ where: { userId: req.user!.id } });
   if (!repProfile) return ok(res, []);
 
@@ -41,10 +42,10 @@ router.get('/tasks', requireRole('rep'), async (req: FirebaseAuthRequest, res: R
   }));
 
   return ok(res, tasks);
-});
+}));
 
 // ─── Earnings ─────────────────────────────────────────────────────────────────
-router.get('/earnings', requireRole('rep'), async (req: FirebaseAuthRequest, res: Response) => {
+router.get('/earnings', requireRole('rep'), asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   const repProfile = await prisma.repProfile.findUnique({ where: { userId: req.user!.id } });
   if (!repProfile) return ok(res, { earnings: [], monthly: [] });
 
@@ -95,6 +96,6 @@ router.get('/earnings', requireRole('rep'), async (req: FirebaseAuthRequest, res
     }));
 
   return ok(res, { earnings: rows, monthly });
-});
+}));
 
 export default router;

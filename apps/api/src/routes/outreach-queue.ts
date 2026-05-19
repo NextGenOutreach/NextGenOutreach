@@ -2,6 +2,7 @@ import express, { Response } from 'express';
 import prisma from '../lib/database';
 import { ok, created, badRequest, notFound } from '../lib/response';
 import { requireRole, FirebaseAuthRequest } from '../middleware/firebaseAuth.middleware';
+import { asyncHandler } from '../middleware/asyncHandler';
 
 const router = express.Router();
 
@@ -9,7 +10,7 @@ const DAY_4_OFFSET_MS = 4 * 24 * 60 * 60 * 1000;
 const DAY_8_OFFSET_MS = 8 * 24 * 60 * 60 * 1000;
 
 // ─── GET /outreach-queue  (rep's queued prospects by step) ────────────────────
-router.get('/', requireRole('rep'), async (req: FirebaseAuthRequest, res: Response) => {
+router.get('/', requireRole('rep'), asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   const rp = await (prisma as any).repProfile.findUnique({ where: { userId: req.user!.id } });
   if (!rp) return ok(res, { day1: [], day4: [], day8: [], noResponse: [] });
 
@@ -39,10 +40,10 @@ router.get('/', requireRole('rep'), async (req: FirebaseAuthRequest, res: Respon
   const noResponse = sequences.filter((s: any) => s.status === 'NO_RESPONSE');
 
   return ok(res, { day1, day4, day8, noResponse });
-});
+}));
 
 // ─── POST /outreach-queue  (enqueue a prospect) ───────────────────────────────
-router.post('/', requireRole('rep', 'admin', 'super_admin'), async (req: FirebaseAuthRequest, res: Response) => {
+router.post('/', requireRole('rep', 'admin', 'super_admin'), asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   const { prospectId, campaignId } = req.body as { prospectId: string; campaignId: string };
   if (!prospectId || !campaignId) return badRequest(res, 'prospectId and campaignId are required');
 
@@ -65,11 +66,11 @@ router.post('/', requireRole('rep', 'admin', 'super_admin'), async (req: Firebas
   });
 
   return created(res, sequence);
-});
+}));
 
 // ─── PATCH /outreach-queue/:id/advance ───────────────────────────────────────
 // Rep marks a step as sent — advances the sequence
-router.patch('/:id/advance', requireRole('rep'), async (req: FirebaseAuthRequest, res: Response) => {
+router.patch('/:id/advance', requireRole('rep'), asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   const sequence: any = await (prisma as any).outreachSequence.findUnique({ where: { id: req.params.id } });
   if (!sequence) return notFound(res, 'Sequence not found');
 
@@ -105,10 +106,10 @@ router.patch('/:id/advance', requireRole('rep'), async (req: FirebaseAuthRequest
   });
 
   return ok(res, updated);
-});
+}));
 
 // ─── PATCH /outreach-queue/:id/reply ─────────────────────────────────────────
-router.patch('/:id/reply', requireRole('rep'), async (req: FirebaseAuthRequest, res: Response) => {
+router.patch('/:id/reply', requireRole('rep'), asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   const { sentiment } = req.body as { sentiment: 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE' };
   const sequence: any = await (prisma as any).outreachSequence.findUnique({
     where: { id: req.params.id },
@@ -129,12 +130,18 @@ router.patch('/:id/reply', requireRole('rep'), async (req: FirebaseAuthRequest, 
   }
 
   return ok(res, { updated: true });
-});
+}));
 
 // ─── PATCH /outreach-queue/:id/skip ──────────────────────────────────────────
-router.patch('/:id/skip', requireRole('rep'), async (req: FirebaseAuthRequest, res: Response) => {
+router.patch('/:id/skip', requireRole('rep'), asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   const sequence: any = await (prisma as any).outreachSequence.findUnique({ where: { id: req.params.id } });
   if (!sequence) return notFound(res, 'Sequence not found');
+
+  // HIGH FIX: Verify rep owns this sequence
+  const rp = await (prisma as any).repProfile.findUnique({ where: { userId: req.user!.id } });
+  if (!rp || sequence.repId !== rp.id) {
+    return notFound(res, 'Sequence not found'); // Return 404 to not leak existence
+  }
 
   await (prisma as any).outreachSequence.update({
     where: { id: req.params.id },
@@ -142,6 +149,6 @@ router.patch('/:id/skip', requireRole('rep'), async (req: FirebaseAuthRequest, r
   });
 
   return ok(res, { skipped: true });
-});
+}));
 
 export default router;

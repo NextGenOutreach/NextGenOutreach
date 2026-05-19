@@ -2,7 +2,8 @@
 cmds = [
   "npm run build --workspace=packages/types",
   "npm run build --workspace=packages/validators",
-  "npm run build --workspace=apps/api"
+  "npm run build --workspace=apps/api",
+  "DATABASE_URL=$DATABASE_PUBLIC_URL npx prisma migrate deploy --schema apps/api/prisma/schema.prisma"
 ]
 
 [start]

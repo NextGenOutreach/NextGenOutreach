@@ -2,6 +2,7 @@ import express, { Response } from 'express';
 import prisma from '../lib/database';
 import { ok, notFound } from '../lib/response';
 import { requireRole, FirebaseAuthRequest } from '../middleware/firebaseAuth.middleware';
+import { asyncHandler } from '../middleware/asyncHandler';
 
 const router = express.Router();
 
@@ -44,7 +45,7 @@ function statusLabel(score: number): 'healthy' | 'stable' | 'caution' | 'at_risk
 }
 
 // ─── GET /linkedin-health  ────────────────────────────────────────────────────
-router.get('/', async (req: FirebaseAuthRequest, res: Response) => {
+router.get('/', asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   const role = req.user!.role;
 
   if (role === 'rep') {
@@ -67,10 +68,10 @@ router.get('/', async (req: FirebaseAuthRequest, res: Response) => {
   });
 
   return ok(res, records.map((r: any) => ({ ...r, status: statusLabel(r.score) })));
-});
+}));
 
 // ─── PATCH /linkedin-health  (rep self-reports or admin updates) ──────────────
-router.patch('/', requireRole('rep', 'admin', 'super_admin'), async (req: FirebaseAuthRequest, res: Response) => {
+router.patch('/', requireRole('rep', 'admin', 'super_admin'), asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   const {
     repId: bodyRepId,
     acceptanceRate7d,
@@ -129,6 +130,6 @@ router.patch('/', requireRole('rep', 'admin', 'super_admin'), async (req: Fireba
   });
 
   return ok(res, { ...record, status: statusLabel(record.score) });
-});
+}));
 
 export default router;

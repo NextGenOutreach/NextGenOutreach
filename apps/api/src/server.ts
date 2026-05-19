@@ -14,6 +14,7 @@ import { requestLogger } from './middleware/requestLogger';
 import { morganStream, logger } from './lib/logger';
 import { authRateLimit, accountLockout, recordFailedLogin, clearFailedLogin } from './lib/rateLimiter';
 import { NODE_ENV } from './config/environment';
+import prisma from './lib/database';
 
 // Import routes
 import { authRoutes } from './routes/auth.routes';
@@ -110,8 +111,9 @@ app.use(cors({
   credentials: true,
 }));
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// MEDIUM FIX: Reduced from 10mb to 100kb default, with larger limit on upload routes
+app.use(express.json({ limit: '100kb' }));
+app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 app.use(limiter);
 app.use(requestLogger);
 
@@ -219,6 +221,25 @@ server.listen(PORT, () => {
   logger.info(`📊 Health check available at http://localhost:${PORT}/health`);
   logger.info(`🔌 Socket.IO server ready`);
   startCronJobs();
+});
+
+// MEDIUM FIX: Graceful shutdown
+process.on('SIGTERM', () => {
+  logger.info('SIGTERM received, shutting down gracefully');
+  server.close(() => {
+    logger.info('HTTP server closed');
+    // Close database connections
+    prisma.$disconnect().then(() => {
+      logger.info('Database connections closed');
+      process.exit(0);
+    });
+  });
+  
+  // Force shutdown after 30 seconds
+  setTimeout(() => {
+    logger.error('Forced shutdown after timeout');
+    process.exit(1);
+  }, 30000);
 });
 
 export default app;

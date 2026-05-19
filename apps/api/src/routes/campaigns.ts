@@ -80,7 +80,7 @@ router.post('/', asyncHandler(async (req: FirebaseAuthRequest, res) => {
   return created(res, campaign);
 }));
 
-// PATCH /api/v1/campaigns/:id/status — update campaign status (admin or owning client)
+// PATCH /api/v1/campaigns/:id/status — update campaign status (admin or owning client/rep)
 router.patch('/:id/status', asyncHandler(async (req: FirebaseAuthRequest, res) => {
   const { user } = req;
   if (!user) return forbidden(res);
@@ -94,6 +94,14 @@ router.patch('/:id/status', asyncHandler(async (req: FirebaseAuthRequest, res) =
 
   const campaign = await prisma.campaign.findUnique({ where: { id: req.params.id } });
   if (!campaign) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Campaign not found', statusCode: 404 } });
+
+  if (user.role === 'client') {
+    const profile = await prisma.clientProfile.findUnique({ where: { userId: user.id } });
+    if (!profile || campaign.clientId !== profile.id) return forbidden(res, 'You do not own this campaign');
+  } else if (user.role === 'rep') {
+    const profile = await prisma.repProfile.findUnique({ where: { userId: user.id } });
+    if (!profile || campaign.repId !== profile.id) return forbidden(res, 'You are not assigned to this campaign');
+  }
 
   const updated = await prisma.campaign.update({
     where: { id: req.params.id },

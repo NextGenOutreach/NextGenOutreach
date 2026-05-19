@@ -87,12 +87,18 @@ export async function firebaseAuthMiddleware(
       }
     }
 
+    // HIGH FIX: Block suspended or banned users
+    const userStatus = (user.status as string).toLowerCase();
+    if (userStatus === 'suspended' || userStatus === 'banned') {
+      return forbidden(res, `Account is ${userStatus}. Contact support.`);
+    }
+
     req.user = {
       id: user.id,
       uid: decoded.uid,
       email: user.email,
       role: (user.role as string).toLowerCase(),
-      status: (user.status as string).toLowerCase(),
+      status: userStatus,
     };
 
     next();

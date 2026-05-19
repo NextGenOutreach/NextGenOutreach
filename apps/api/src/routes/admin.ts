@@ -1,8 +1,9 @@
 import express from 'express';
 import { asyncHandler } from '../middleware/asyncHandler';
-import { ok, badRequest, forbidden } from '../lib/response';
+import { ok, badRequest, forbidden, serverError } from '../lib/response';
 import { FirebaseAuthRequest } from '../middleware/firebaseAuth.middleware';
 import { calculateMatchScore } from '../services/matching.service';
+import { getAdminAuth } from '../lib/firebaseAdmin';
 import prisma from '../lib/database';
 import { logger } from '../lib/logger';
 
@@ -144,10 +145,31 @@ router.patch('/users/:id/role', asyncHandler(async (req: FirebaseAuthRequest, re
   const updated = await prisma.user.update({
     where: { id: req.params.id },
     data: { role: (role as string).toUpperCase() as any },
-    select: { id: true, email: true, role: true, status: true },
+    select: { id: true, email: true, role: true, status: true, passwordHash: true },
   });
 
-  return ok(res, updated);
+  // CRITICAL FIX: Sync role to Firebase custom claims so the token reflects the new role immediately
+  // The passwordHash contains 'firebase:{uid}' for Firebase users
+  if (updated.passwordHash?.startsWith('firebase:')) {
+    const firebaseUid = updated.passwordHash.replace('firebase:', '');
+    try {
+      const adminAuth = getAdminAuth();
+      // Set lowercase role in claims to match sync-claims convention
+      await adminAuth.setCustomUserClaims(firebaseUid, { 
+        role: (role as string).toLowerCase() 
+      });
+      logger.info(`[admin] Updated Firebase claims for user ${updated.id} (${updated.email}) to role: ${role}`);
+    } catch (firebaseErr) {
+      logger.error(`[admin] Failed to sync Firebase claims for user ${updated.id}:`, firebaseErr);
+      // Don't fail the request - DB update succeeded, Firebase sync is best-effort
+      // The user will get the new role on next token refresh or re-login
+    }
+  }
+
+  return ok(res, { 
+    ...updated, 
+    firebaseSync: updated.passwordHash?.startsWith('firebase:') ? 'synced' : 'not-applicable'
+  });
 }));
 
 // GET /api/v1/admin/stats — platform-level counts
@@ -252,23 +274,88 @@ router.get('/reps', asyncHandler(async (req: FirebaseAuthRequest, res) => {
     },
   });
 
-  const repsWithStats = await Promise.all(
-    reps.map(async (rep: typeof reps[0]) => {
-      const [connectionsSent, connectionsAccepted, meetingsBooked] = await Promise.all([
-        prisma.campaignActivity.count({ where: { campaign: { repId: rep.id }, activityType: 'CONNECTION_SENT' } }),
-        prisma.campaignActivity.count({ where: { campaign: { repId: rep.id }, activityType: 'CONNECTION_ACCEPTED' } }),
-        prisma.campaignActivity.count({ where: { campaign: { repId: rep.id }, activityType: 'MEETING_BOOKED' } }),
-      ]);
-      return {
-        ...rep,
-        stats: {
-          connectionsSent,
-          acceptanceRate: connectionsSent > 0 ? Math.round((connectionsAccepted / connectionsSent) * 100) : 0,
-          meetingsBooked,
-        },
-      };
-    })
-  );
+  // HIGH FIX: Batch fetch all activity stats in 3 queries instead of N*3 queries
+  const repIds = reps.map(r => r.id);
+  
+  // Fetch all activity counts grouped by rep
+  const [allConnectionsSent, allConnectionsAccepted, allMeetingsBooked] = await Promise.all([
+    prisma.campaignActivity.groupBy({
+      by: ['campaignId'],
+      where: { 
+        campaign: { repId: { in: repIds } },
+        activityType: 'CONNECTION_SENT' 
+      },
+      _count: { _all: true },
+    }),
+    prisma.campaignActivity.groupBy({
+      by: ['campaignId'],
+      where: { 
+        campaign: { repId: { in: repIds } },
+        activityType: 'CONNECTION_ACCEPTED' 
+      },
+      _count: { _all: true },
+    }),
+    prisma.campaignActivity.groupBy({
+      by: ['campaignId'],
+      where: { 
+        campaign: { repId: { in: repIds } },
+        activityType: 'MEETING_BOOKED' 
+      },
+      _count: { _all: true },
+    }),
+  ]);
+
+  // Get campaign to rep mapping
+  const campaignIds = [...new Set([...allConnectionsSent, ...allConnectionsAccepted, ...allMeetingsBooked].map(a => a.campaignId))];
+  const campaigns = campaignIds.length > 0 
+    ? await prisma.campaign.findMany({
+        where: { id: { in: campaignIds } },
+        select: { id: true, repId: true }
+      })
+    : [];
+  const campaignToRep = new Map(campaigns.map(c => [c.id, c.repId]));
+
+  // Aggregate counts per rep
+  const repStats = new Map<string, { connectionsSent: number; connectionsAccepted: number; meetingsBooked: number }>();
+  
+  for (const stat of allConnectionsSent) {
+    const repId = campaignToRep.get(stat.campaignId);
+    if (repId) {
+      const current = repStats.get(repId) || { connectionsSent: 0, connectionsAccepted: 0, meetingsBooked: 0 };
+      current.connectionsSent += stat._count._all;
+      repStats.set(repId, current);
+    }
+  }
+  
+  for (const stat of allConnectionsAccepted) {
+    const repId = campaignToRep.get(stat.campaignId);
+    if (repId) {
+      const current = repStats.get(repId) || { connectionsSent: 0, connectionsAccepted: 0, meetingsBooked: 0 };
+      current.connectionsAccepted += stat._count._all;
+      repStats.set(repId, current);
+    }
+  }
+  
+  for (const stat of allMeetingsBooked) {
+    const repId = campaignToRep.get(stat.campaignId);
+    if (repId) {
+      const current = repStats.get(repId) || { connectionsSent: 0, connectionsAccepted: 0, meetingsBooked: 0 };
+      current.meetingsBooked += stat._count._all;
+      repStats.set(repId, current);
+    }
+  }
+
+  const repsWithStats = reps.map(rep => {
+    const stats = repStats.get(rep.id) || { connectionsSent: 0, connectionsAccepted: 0, meetingsBooked: 0 };
+    return {
+      ...rep,
+      stats: {
+        connectionsSent: stats.connectionsSent,
+        acceptanceRate: stats.connectionsSent > 0 ? Math.round((stats.connectionsAccepted / stats.connectionsSent) * 100) : 0,
+        meetingsBooked: stats.meetingsBooked,
+      },
+    };
+  });
 
   return ok(res, repsWithStats);
 }));

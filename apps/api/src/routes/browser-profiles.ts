@@ -3,11 +3,12 @@ import prisma from '../lib/database';
 import { ok, created, badRequest, notFound, serverError } from '../lib/response';
 import { requireRole, FirebaseAuthRequest } from '../middleware/firebaseAuth.middleware';
 import { browserProvider, SupportedProvider } from '../integrations/browser-provider';
+import { asyncHandler } from '../middleware/asyncHandler';
 
 const router = express.Router();
 
 // ─── GET /browser-profiles  (admin: all; rep: own) ────────────────────────────
-router.get('/', async (req: FirebaseAuthRequest, res: Response) => {
+router.get('/', asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   const role = req.user!.role;
   let repId: string | undefined;
 
@@ -24,10 +25,10 @@ router.get('/', async (req: FirebaseAuthRequest, res: Response) => {
   });
 
   return ok(res, profiles);
-});
+}));
 
 // ─── GET /browser-profiles/:id ────────────────────────────────────────────────
-router.get('/:id', async (req: FirebaseAuthRequest, res: Response) => {
+router.get('/:id', asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   const profile = await prisma.browserProfile.findUnique({
     where: { id: req.params.id },
     include: { proxy: true },
@@ -42,10 +43,10 @@ router.get('/:id', async (req: FirebaseAuthRequest, res: Response) => {
   }
 
   return ok(res, profile);
-});
+}));
 
 // ─── POST /browser-profiles  (create + provision externally) ──────────────────
-router.post('/', requireRole('admin', 'super_admin'), async (req: FirebaseAuthRequest, res: Response) => {
+router.post('/', requireRole('admin', 'super_admin'), asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   const { repId, campaignId, provider, proxyId, linkedinAccountEmail, notes } = req.body as {
     repId: string;
     campaignId?: string;
@@ -101,10 +102,10 @@ router.post('/', requireRole('admin', 'super_admin'), async (req: FirebaseAuthRe
   } catch (err: unknown) {
     return serverError(res, err instanceof Error ? err.message : 'Provider API error');
   }
-});
+}));
 
 // ─── POST /browser-profiles/:id/launch ────────────────────────────────────────
-router.post('/:id/launch', requireRole('rep', 'admin', 'super_admin'), async (req: FirebaseAuthRequest, res: Response) => {
+router.post('/:id/launch', requireRole('rep', 'admin', 'super_admin'), asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   const profile = await prisma.browserProfile.findUnique({ where: { id: req.params.id } });
   if (!profile) return notFound(res, 'Browser profile not found');
 
@@ -129,10 +130,10 @@ router.post('/:id/launch', requireRole('rep', 'admin', 'super_admin'), async (re
     await prisma.browserProfile.update({ where: { id: profile.id }, data: { sessionStatus: 'ERROR' } });
     return serverError(res, err instanceof Error ? err.message : 'Launch failed');
   }
-});
+}));
 
 // ─── GET /browser-profiles/:id/health ────────────────────────────────────────
-router.get('/:id/health', requireRole('rep', 'admin', 'super_admin'), async (req: FirebaseAuthRequest, res: Response) => {
+router.get('/:id/health', requireRole('rep', 'admin', 'super_admin'), asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   const profile = await prisma.browserProfile.findUnique({ where: { id: req.params.id } });
   if (!profile) return notFound(res, 'Browser profile not found');
   if (!profile.externalProfileId) return badRequest(res, 'No external profile ID');
@@ -151,10 +152,10 @@ router.get('/:id/health', requireRole('rep', 'admin', 'super_admin'), async (req
   } catch (err: unknown) {
     return serverError(res, err instanceof Error ? err.message : 'Health check failed');
   }
-});
+}));
 
 // ─── PATCH /browser-profiles/:id ─────────────────────────────────────────────
-router.patch('/:id', requireRole('admin', 'super_admin'), async (req: FirebaseAuthRequest, res: Response) => {
+router.patch('/:id', requireRole('admin', 'super_admin'), asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   const { warmupDay, sessionStatus, proxyId, linkedinAccountEmail, notes } = req.body;
 
   const profile = await prisma.browserProfile.findUnique({ where: { id: req.params.id } });
@@ -172,10 +173,10 @@ router.patch('/:id', requireRole('admin', 'super_admin'), async (req: FirebaseAu
   });
 
   return ok(res, updated);
-});
+}));
 
 // ─── DELETE /browser-profiles/:id ────────────────────────────────────────────
-router.delete('/:id', requireRole('admin', 'super_admin'), async (req: FirebaseAuthRequest, res: Response) => {
+router.delete('/:id', requireRole('admin', 'super_admin'), asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   const profile = await prisma.browserProfile.findUnique({ where: { id: req.params.id } });
   if (!profile) return notFound(res, 'Browser profile not found');
 
@@ -190,6 +191,6 @@ router.delete('/:id', requireRole('admin', 'super_admin'), async (req: FirebaseA
 
   await prisma.browserProfile.delete({ where: { id: req.params.id } });
   return ok(res, { deleted: true });
-});
+}));
 
 export default router;

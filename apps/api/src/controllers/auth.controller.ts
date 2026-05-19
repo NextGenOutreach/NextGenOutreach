@@ -161,7 +161,6 @@ export class AuthController {
     }
 
     const idToken = authHeader.split(' ')[1];
-    const { role } = req.body as { role?: string };
 
     try {
       const adminAuth = getAdminAuth();
@@ -180,46 +179,28 @@ export class AuthController {
         return ok(res, { role: dbUser.role.toLowerCase(), _dbEmail: dbUser.email, _tokenEmail: email });
       }
 
-      // Fallback to existing Firebase claims
-      const userRecord = await adminAuth.getUser(decoded.uid);
-      const existingRole = (userRecord.customClaims as { role?: string } | null)?.role;
-      const assignedRole = existingRole === 'rep' || role === 'rep' ? 'rep' : 'client';
-      const prismaRole = assignedRole === 'rep' ? 'REP' : 'CLIENT';
+      // New Firebase user — always assign 'client' by default.
+      // Role upgrades (e.g. to 'rep') must be done by an admin via the admin API.
+      const assignedRole = 'client';
+      const prismaRole = 'CLIENT';
 
       const createdUser = await prisma.user.create({
         data: {
           email,
           passwordHash: `firebase:${decoded.uid}`,
           role: prismaRole as any,
-          status: 'ACTIVE' as any,
+          status: 'PENDING' as any,
           twoFaEnabled: false,
         },
       });
 
-      if (assignedRole === 'rep') {
-        await prisma.repProfile.create({
-          data: {
-            userId: createdUser.id,
-            linkedinUrl: '',
-            linkedinFollowers: 0,
-            onboardingStep: 1,
-            idVerified: false,
-            twoFaConfirmed: false,
-            availabilityStatus: 'unavailable',
-            maxClients: 3,
-            rating: 0,
-            totalReviews: 0,
-          },
-        });
-      } else {
-        await prisma.clientProfile.create({
-          data: {
-            userId: createdUser.id,
-            plan: 'STARTER' as any,
-            planStatus: 'inactive',
-          },
-        });
-      }
+      await prisma.clientProfile.create({
+        data: {
+          userId: createdUser.id,
+          plan: 'STARTER' as any,
+          planStatus: 'inactive',
+        },
+      });
 
       await adminAuth.setCustomUserClaims(decoded.uid, { role: assignedRole });
 

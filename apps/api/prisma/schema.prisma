@@ -78,6 +78,10 @@ model RepProfile {
   linkedInHealth      LinkedInHealthScore?
   repBadges           RepBadge[]
 
+  // HIGH FIX: Indexes for performance
+  @@index([idVerified, availabilityStatus])
+  @@index([trustScore])
+  @@index([tier])
   @@map("rep_profiles")
 }
 
@@ -92,12 +96,15 @@ model DailyReport {
   reportDate      DateTime @map("report_date")
   notes           String?
   status          String   @default("SUBMITTED") // SUBMITTED, LATE, MISSING
+  mismatchFlag    Boolean  @default(false) @map("mismatch_flag") // MEDIUM FIX: Structured mismatch detection
   createdAt       DateTime @default(now()) @map("created_at")
 
   // Relations
   rep             RepProfile @relation(fields: [repId], references: [id])
   campaign        Campaign   @relation(fields: [campaignId], references: [id])
 
+  // MEDIUM FIX: Index for mismatch queries
+  @@index([mismatchFlag, reportDate])
   @@unique([repId, campaignId, reportDate])
   @@map("daily_reports")
 }
@@ -162,6 +169,11 @@ model Campaign {
   activityLogs      ActivityLog[]
   outreachSequences OutreachSequence[]
 
+  // HIGH FIX: Indexes for performance
+  @@index([status])
+  @@index([repId, status])
+  @@index([clientId])
+  @@index([endDate])
   @@map("campaigns")
 }
 
@@ -177,6 +189,9 @@ model CampaignActivity {
   // Relations
   campaign      Campaign            @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
+  // HIGH FIX: Indexes for performance
+  @@index([campaignId, activityType, occurredAt])
+  @@index([activityType])
   @@map("campaign_activities")
 }
 
@@ -736,6 +751,9 @@ model ActivityLog {
   rep         RepProfile  @relation(fields: [repId], references: [id])
   campaign    Campaign    @relation(fields: [campaignId], references: [id])
 
+  // HIGH FIX: Indexes for performance
+  @@index([repId, campaignId, loggedAt])
+  @@index([actionType, loggedAt])
   @@map("activity_logs")
 }
 

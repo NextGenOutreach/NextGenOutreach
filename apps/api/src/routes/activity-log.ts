@@ -2,11 +2,16 @@ import express, { Response } from 'express';
 import prisma from '../lib/database';
 import { ok, created, badRequest } from '../lib/response';
 import { requireRole, FirebaseAuthRequest } from '../middleware/firebaseAuth.middleware';
+import { asyncHandler } from '../middleware/asyncHandler';
+import { ActivityType } from '@prisma/client';
 
 const router = express.Router();
 
+// MEDIUM FIX: Valid action types
+const VALID_ACTION_TYPES: string[] = Object.values(ActivityType);
+
 // ─── POST /activity-log  (rep logs an action) ─────────────────────────────────
-router.post('/', requireRole('rep'), async (req: FirebaseAuthRequest, res: Response) => {
+router.post('/', requireRole('rep'), asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   const rp = await (prisma as any).repProfile.findUnique({ where: { userId: req.user!.id } });
   if (!rp) return badRequest(res, 'Rep profile not found');
 
@@ -18,6 +23,11 @@ router.post('/', requireRole('rep'), async (req: FirebaseAuthRequest, res: Respo
   };
 
   if (!campaignId || !actionType) return badRequest(res, 'campaignId and actionType are required');
+  
+  // MEDIUM FIX: Validate actionType against enum
+  if (!VALID_ACTION_TYPES.includes(actionType)) {
+    return badRequest(res, `Invalid actionType. Must be one of: ${VALID_ACTION_TYPES.join(', ')}`);
+  }
 
   const log = await (prisma as any).activityLog.create({
     data: {
@@ -30,10 +40,10 @@ router.post('/', requireRole('rep'), async (req: FirebaseAuthRequest, res: Respo
   });
 
   return created(res, log);
-});
+}));
 
 // ─── GET /activity-log  (rep: own today; admin: all) ─────────────────────────
-router.get('/', async (req: FirebaseAuthRequest, res: Response) => {
+router.get('/', asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   const role = req.user!.role;
   const { campaignId, date } = req.query as { campaignId?: string; date?: string };
 
@@ -57,10 +67,10 @@ router.get('/', async (req: FirebaseAuthRequest, res: Response) => {
   });
 
   return ok(res, logs);
-});
+}));
 
 // ─── GET /activity-log/summary  (rep's today count by action type) ─────────────
-router.get('/summary', requireRole('rep'), async (req: FirebaseAuthRequest, res: Response) => {
+router.get('/summary', requireRole('rep'), asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   const rp = await (prisma as any).repProfile.findUnique({ where: { userId: req.user!.id } });
   if (!rp) return ok(res, {});
 
@@ -83,6 +93,6 @@ router.get('/summary', requireRole('rep'), async (req: FirebaseAuthRequest, res:
   }
 
   return ok(res, summary);
-});
+}));
 
 export default router;

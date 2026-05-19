@@ -90,6 +90,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!auth) throw new Error("Firebase not initialized");
     const cred = await signInWithEmailAndPassword(auth, email, password);
     const role = await resolveUserRole(cred.user);
+    const idToken = await cred.user.getIdToken();
+    document.cookie = `session=${idToken}; path=/; max-age=3600; SameSite=Strict`;
     const authUser: AuthUser = {
       uid: cred.user.uid,
       email: cred.user.email,
@@ -118,6 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     if (!auth) return;
     await firebaseSignOut(auth);
+    document.cookie = 'session=; path=/; max-age=0; SameSite=Strict';
     setUser(null);
   };
 

@@ -6,6 +6,27 @@ import { runDailyComplianceCheck } from '../services/compliance.service';
 import { calculateRepTrustScore, updateRepTier } from '../services/rep.service';
 import { calculateMonthlyPayouts } from '../services/billing.service';
 
+// HIGH FIX: SSRF protection - validate proxy hosts are not internal IPs
+function isInternalIp(host: string): boolean {
+  // Check for localhost
+  if (host === 'localhost' || host === '127.0.0.1' || host === '::1') return true;
+  
+  // Check for private IP ranges (RFC-1918)
+  const privateRanges = [
+    /^10\./,                           // 10.0.0.0/8
+    /^172\.(1[6-9]|2[0-9]|3[0-1])\./, // 172.16.0.0/12
+    /^192\.168\./,                    // 192.168.0.0/16
+    /^169\.254\./,                    // Link-local 169.254.0.0/16
+    /^fc00:/,                          // IPv6 unique local (fc00::/7)
+    /^fe80:/,                          // IPv6 link-local (fe80::/10)
+    /^::1$/,                           // IPv6 loopback
+    /^0\./,                            // Current network
+    /^127\./,                          // Loopback
+  ];
+  
+  return privateRanges.some(range => range.test(host));
+}
+
 export function startCronJobs() {
   cron.schedule('0 */4 * * *', async () => {
     try {
@@ -84,15 +105,25 @@ export function startCronJobs() {
 
         if (matches.length > 0) {
           const bestRep = matches[0];
-          await prisma.campaign.update({
-            where: { id: campaign.id },
+          // CRITICAL FIX: Use atomic updateMany with status check to prevent race condition
+          // Only one instance will succeed when multiple try to update the same campaign
+          const updateResult = await prisma.campaign.updateMany({
+            where: { 
+              id: campaign.id,
+              status: 'PENDING_MATCH' as any, // Ensure it hasn't been assigned by another instance
+              repId: null 
+            },
             data: {
               repId: bestRep.id,
               status: 'ACTIVE' as any,
               startDate: new Date(),
             },
           });
-          logger.info(`[cron] AUTO-ASSIGN: Campaign "${campaign.name}" assigned to rep ${bestRep.id} (Score: ${bestRep.score})`);
+          
+          // Only log if we actually updated (won the race)
+          if (updateResult.count > 0) {
+            logger.info(`[cron] AUTO-ASSIGN: Campaign "${campaign.name}" assigned to rep ${bestRep.id} (Score: ${bestRep.score})`);
+          }
         }
       }
     } catch (err) {
@@ -152,6 +183,21 @@ export function startCronJobs() {
       for (const campaign of activeCampaigns) {
         if (!campaign.rep?.hourlyRateUsd) continue;
 
+        // CRITICAL FIX: Check for existing record to prevent duplicate creation
+        const periodStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        const existing = await prisma.repEarning.findFirst({
+          where: {
+            repId: campaign.rep.id,
+            campaignId: campaign.id,
+            periodStart: {
+              gte: new Date(periodStart.setHours(0, 0, 0, 0)),
+              lt: new Date(new Date(periodStart).setDate(periodStart.getDate() + 1)),
+            },
+          },
+        });
+
+        if (existing) continue; // Skip if already created
+
         await prisma.repEarning.create({
           data: {
             repId: campaign.rep.id,
@@ -183,7 +229,15 @@ export function startCronJobs() {
       });
 
       let dead = 0;
+      let skipped = 0;
       for (const proxy of proxies) {
+        // HIGH FIX: Skip internal IPs to prevent SSRF
+        if (isInternalIp(proxy.host)) {
+          logger.warn(`[cron] Proxy ${proxy.id} (${proxy.host}:${proxy.port}) skipped - internal IP detected (SSRF prevention)`);
+          skipped++;
+          continue;
+        }
+        
         try {
           const controller = new AbortController();
           const timeout = setTimeout(() => controller.abort(), 8000);

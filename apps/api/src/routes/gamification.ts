@@ -2,11 +2,12 @@ import express, { Response } from 'express';
 import prisma from '../lib/database';
 import { ok, created, badRequest, notFound } from '../lib/response';
 import { requireRole, FirebaseAuthRequest } from '../middleware/firebaseAuth.middleware';
+import { asyncHandler } from '../middleware/asyncHandler';
 
 const router = express.Router();
 
 // ─── GET /gamification/leaderboard ───────────────────────────────────────────
-router.get('/leaderboard', async (_req: FirebaseAuthRequest, res: Response) => {
+router.get('/leaderboard', asyncHandler(async (_req: FirebaseAuthRequest, res: Response) => {
   const reps = await (prisma as any).repProfile.findMany({
     select: {
       id: true,
@@ -31,16 +32,16 @@ router.get('/leaderboard', async (_req: FirebaseAuthRequest, res: Response) => {
     tier: r.tier,
     badges: r.repBadges.map((b: any) => b.badge),
   })));
-});
+}));
 
 // ─── GET /gamification/badges ─────────────────────────────────────────────────
-router.get('/badges', async (_req: FirebaseAuthRequest, res: Response) => {
+router.get('/badges', asyncHandler(async (_req: FirebaseAuthRequest, res: Response) => {
   const badges: any[] = await (prisma as any).badge.findMany({ orderBy: { name: 'asc' } });
   return ok(res, badges);
-});
+}));
 
 // ─── GET /gamification/my-badges ─────────────────────────────────────────────
-router.get('/my-badges', requireRole('rep'), async (req: FirebaseAuthRequest, res: Response) => {
+router.get('/my-badges', requireRole('rep'), asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   const rp = await (prisma as any).repProfile.findUnique({ where: { userId: req.user!.id } });
   if (!rp) return ok(res, []);
 
@@ -51,10 +52,10 @@ router.get('/my-badges', requireRole('rep'), async (req: FirebaseAuthRequest, re
   });
 
   return ok(res, repBadges);
-});
+}));
 
 // ─── POST /gamification/badges  (admin seeds/creates badge definitions) ───────
-router.post('/badges', requireRole('admin', 'super_admin'), async (req: FirebaseAuthRequest, res: Response) => {
+router.post('/badges', requireRole('admin', 'super_admin'), asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   const { key, name, description, icon } = req.body as {
     key: string; name: string; description: string; icon: string;
   };
@@ -68,10 +69,10 @@ router.post('/badges', requireRole('admin', 'super_admin'), async (req: Firebase
   });
 
   return created(res, badge);
-});
+}));
 
 // ─── POST /gamification/award ─────────────────────────────────────────────────
-router.post('/award', requireRole('admin', 'super_admin'), async (req: FirebaseAuthRequest, res: Response) => {
+router.post('/award', requireRole('admin', 'super_admin'), asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   const { repId, badgeKey } = req.body as { repId: string; badgeKey: string };
   if (!repId || !badgeKey) return badRequest(res, 'repId and badgeKey required');
 
@@ -85,10 +86,10 @@ router.post('/award', requireRole('admin', 'super_admin'), async (req: FirebaseA
   });
 
   return created(res, repBadge);
-});
+}));
 
 // ─── GET /gamification/progress/:repId ───────────────────────────────────────
-router.get('/progress/:repId?', requireRole('rep', 'admin', 'super_admin'), async (req: FirebaseAuthRequest, res: Response) => {
+router.get('/progress/:repId?', requireRole('rep', 'admin', 'super_admin'), asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   let repId = req.params.repId;
   if (req.user!.role === 'rep' || !repId) {
     const rp = await (prisma as any).repProfile.findUnique({ where: { userId: req.user!.id } });
@@ -127,6 +128,6 @@ router.get('/progress/:repId?', requireRole('rep', 'admin', 'super_admin'), asyn
     monthlyEarnings,
     linkedInHealth: rep.linkedInHealth,
   });
-});
+}));
 
 export default router;

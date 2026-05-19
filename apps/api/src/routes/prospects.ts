@@ -29,8 +29,11 @@ const canAccessProspect = async (req: FirebaseAuthRequest, res: Response, next: 
   }
 
   if (user.role === 'rep') {
-    if (prospect.repId !== user.id) { // This assumes repId is profileId or userId, need to check
-      // Actually repId in Prospect model links to RepProfile.
+    // repId in Prospect links to RepProfile.id, not User.id
+    // Need to look up repProfile for this user and compare to prospect.repId
+    const repProfile = await prisma.repProfile.findUnique({ where: { userId: user.id } });
+    if (!repProfile || prospect.repId !== repProfile.id) {
+      return forbidden(res, 'Access denied to this prospect');
     }
   }
 
@@ -95,11 +98,20 @@ router.patch('/:id', canAccessProspect, asyncHandler(async (req: FirebaseAuthReq
     // Check if deal already exists
     const existingDeal = await prisma.deal.findFirst({ where: { prospectId: updated.id } });
     if (!existingDeal) {
+      // Look up the campaign to get the correct clientId
+      const campaign = await prisma.campaign.findUnique({
+        where: { id: updated.campaignId },
+        select: { clientId: true }
+      });
+      
+      if (!campaign) {
+        return badRequest(res, 'Campaign not found for prospect');
+      }
+      
       await prisma.deal.create({
         data: {
           prospectId: updated.id,
-          clientId: updated.campaignId, // Wait, Deal model uses clientId, Prospect has campaignId
-          // Need to get clientId from Campaign
+          clientId: campaign.clientId, // CRITICAL FIX: Use correct clientId from campaign
         }
       });
     }

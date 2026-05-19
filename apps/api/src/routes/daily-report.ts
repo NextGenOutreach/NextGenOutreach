@@ -2,11 +2,12 @@ import express, { Response } from 'express';
 import prisma from '../lib/database';
 import { ok, created, badRequest, notFound } from '../lib/response';
 import { requireRole, FirebaseAuthRequest } from '../middleware/firebaseAuth.middleware';
+import { asyncHandler } from '../middleware/asyncHandler';
 
 const router = express.Router();
 
 // ─── GET /daily-report/prefill  (auto-populated from activity log) ─────────────
-router.get('/prefill', requireRole('rep'), async (req: FirebaseAuthRequest, res: Response) => {
+router.get('/prefill', requireRole('rep'), asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   const rp = await (prisma as any).repProfile.findUnique({ where: { userId: req.user!.id } });
   if (!rp) return badRequest(res, 'Rep profile not found');
 
@@ -41,10 +42,10 @@ router.get('/prefill', requireRole('rep'), async (req: FirebaseAuthRequest, res:
     rawCounts: counts,
     source: 'activity_log',
   });
-});
+}));
 
 // ─── GET /daily-report  (list rep's submitted reports) ────────────────────────
-router.get('/', requireRole('rep', 'admin', 'super_admin'), async (req: FirebaseAuthRequest, res: Response) => {
+router.get('/', requireRole('rep', 'admin', 'super_admin'), asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   const role = req.user!.role;
   let repId: string | undefined;
 
@@ -68,10 +69,10 @@ router.get('/', requireRole('rep', 'admin', 'super_admin'), async (req: Firebase
   });
 
   return ok(res, reports);
-});
+}));
 
 // ─── POST /daily-report  (submit report; flags mismatch vs activity log) ──────
-router.post('/', requireRole('rep'), async (req: FirebaseAuthRequest, res: Response) => {
+router.post('/', requireRole('rep'), asyncHandler(async (req: FirebaseAuthRequest, res: Response) => {
   const rp = await (prisma as any).repProfile.findUnique({ where: { userId: req.user!.id } });
   if (!rp) return badRequest(res, 'Rep profile not found');
 
@@ -140,6 +141,7 @@ router.post('/', requireRole('rep'), async (req: FirebaseAuthRequest, res: Respo
           accountHealth ? `Account health: ${accountHealth}` : '',
         ].filter(Boolean).join('\n'),
         status: 'SUBMITTED',
+        mismatchFlag: mismatch, // MEDIUM FIX: Use structured flag
       },
     });
     return ok(res, { ...updated, mismatch });
@@ -160,16 +162,18 @@ router.post('/', requireRole('rep'), async (req: FirebaseAuthRequest, res: Respo
         accountHealth ? `Account health: ${accountHealth}` : '',
       ].filter(Boolean).join('\n'),
       status: 'SUBMITTED',
+      mismatchFlag: mismatch, // MEDIUM FIX: Use structured flag
     },
   });
 
   return created(res, { ...report, mismatch });
-});
+}));
 
 // ─── GET /daily-report/flagged  (admin: reports with mismatch flags) ───────────
-router.get('/flagged', requireRole('admin', 'super_admin'), async (_req: FirebaseAuthRequest, res: Response) => {
+router.get('/flagged', requireRole('admin', 'super_admin'), asyncHandler(async (_req: FirebaseAuthRequest, res: Response) => {
+  // MEDIUM FIX: Use structured mismatchFlag instead of text parsing
   const reports = await prisma.dailyReport.findMany({
-    where: { notes: { contains: '[FLAG:' } },
+    where: { mismatchFlag: true },
     orderBy: { reportDate: 'desc' },
     include: {
       rep: { include: { user: { select: { email: true } } } },
@@ -178,6 +182,6 @@ router.get('/flagged', requireRole('admin', 'super_admin'), async (_req: Firebas
   });
 
   return ok(res, reports);
-});
+}));
 
 export default router;
