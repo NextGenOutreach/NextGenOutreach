@@ -1,5 +1,6 @@
 {
-  "buildCommand": "npm install && npm install lightningcss && npm run build",
   "framework": "nextjs",
-  "installCommand": "npm install"
+  "rootDirectory": "apps/web",
+  "installCommand": "npm install",
+  "buildCommand": "npm run build"
 }
