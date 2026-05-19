@@ -1,4 +1,6 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
   --background: #0d0d1a;
@@ -23,22 +25,6 @@
   --font-outfit: "Arial Black", "Arial", sans-serif;
   --font-dm-sans: Arial, Helvetica, sans-serif;
   --font-bungee: Impact, "Arial Black", sans-serif;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-muted: var(--muted);
-  --color-accent-1: var(--accent-1);
-  --color-accent-2: var(--accent-2);
-  --color-accent-3: var(--accent-3);
-  --color-accent-4: var(--accent-4);
-  --color-accent-5: var(--accent-5);
-  --font-sans: var(--font-dm-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-outfit: var(--font-outfit);
-  --font-dm-sans: var(--font-dm-sans);
-  --font-bungee: var(--font-bungee);
 }
 
 body {
