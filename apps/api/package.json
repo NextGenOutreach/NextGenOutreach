@@ -12,7 +12,7 @@
     "db:migrate:dev": "npx prisma migrate dev",
     "db:push": "npx prisma db push",
     "db:studio": "npx prisma studio",
-    "start": "npx prisma db push --accept-data-loss && node dist/server.js",
+    "start": "node dist/server.js",
     "lint": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
