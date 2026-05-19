@@ -2,10 +2,9 @@
 cmds = [
   "npm run build --workspace=packages/types",
   "npm run build --workspace=packages/validators",
-  "npm run build --workspace=apps/api",
-  "DATABASE_URL=$DATABASE_PUBLIC_URL npx prisma migrate deploy --schema apps/api/prisma/schema.prisma"
+  "npm run build --workspace=apps/api"
 ]
 
 [start]
-cmd = "node apps/api/dist/server.js"
+cmd = "npx prisma migrate deploy --schema apps/api/prisma/schema.prisma && node apps/api/dist/server.js"
 
