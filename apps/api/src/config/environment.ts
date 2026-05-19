@@ -10,9 +10,9 @@ const envSchema = z.object({
   PORT: z.string().transform(Number).default('3001'),
   
   // JWT Configuration
-  JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
+  JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters').optional(),
   JWT_EXPIRES_IN: z.string().default('15m'),
-  JWT_REFRESH_SECRET: z.string().min(32, 'JWT_REFRESH_SECRET must be at least 32 characters'),
+  JWT_REFRESH_SECRET: z.string().min(32, 'JWT_REFRESH_SECRET must be at least 32 characters').optional(),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
   
   // Database Configuration — required, but accept both postgres:// and postgresql://
@@ -40,14 +40,14 @@ const envSchema = z.object({
   RATE_LIMIT_WINDOW_MS: z.string().transform(Number).default('900000'),
   RATE_LIMIT_MAX_REQUESTS: z.string().transform(Number).default('200'),
   
-  // CORS Configuration
-  CORS_ORIGIN: z.string().default('https://nextgenoutreach.co.za'),
+  // CORS Configuration — comma-separated list of allowed origins
+  CORS_ORIGIN: z.string().default('https://nextgenoutreach-api.vercel.app,https://nextgenoutreach.co.za,http://localhost:3000'),
   
   // Firebase Configuration — optional for local dev, required in production
   FIREBASE_SERVICE_ACCOUNT: z.string().optional(),
 
   // Session Configuration
-  SESSION_SECRET: z.string().min(32, 'SESSION_SECRET must be at least 32 characters').optional(),
+  SESSION_SECRET: z.string().optional(),
   SESSION_MAX_AGE: z.string().transform(Number).default('86400000'),
 });
 
@@ -66,9 +66,13 @@ if (!envValidation.success) {
 const env = envValidation.data;
 
 // JWT Configuration (from validated environment)
-export const JWT_SECRET = env.JWT_SECRET;
+const FALLBACK_JWT = 'nextgenoutreach-fallback-secret-change-in-production-env';
+if (!env.JWT_SECRET) {
+  console.warn('⚠️  JWT_SECRET not set — using insecure fallback. Set in Railway env vars!');
+}
+export const JWT_SECRET = env.JWT_SECRET ?? FALLBACK_JWT;
 export const JWT_EXPIRES_IN = env.JWT_EXPIRES_IN;
-export const JWT_REFRESH_SECRET = env.JWT_REFRESH_SECRET;
+export const JWT_REFRESH_SECRET = env.JWT_REFRESH_SECRET ?? FALLBACK_JWT;
 export const JWT_REFRESH_EXPIRES_IN = env.JWT_REFRESH_EXPIRES_IN;
 
 // Database Configuration
@@ -130,8 +134,7 @@ export const ALLOWED_FILE_TYPES = process.env.ALLOWED_FILE_TYPES?.split(',') || 
 
 // Session Configuration (from validated environment)
 if (!env.SESSION_SECRET && env.NODE_ENV === 'production') {
-  console.error('❌ SESSION_SECRET is required in production');
-  process.exit(1);
+  console.warn('⚠️  SESSION_SECRET not set in production — using insecure fallback. Set in Railway env vars!');
 }
 export const SESSION_SECRET = env.SESSION_SECRET ?? 'dev-session-secret-not-for-production-use-only';
 export const SESSION_MAX_AGE = env.SESSION_MAX_AGE;

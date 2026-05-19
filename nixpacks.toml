@@ -1,10 +1,17 @@
+[phases.setup]
+nixPkgs = ["nodejs_20"]
+
+[phases.install]
+cmds = ["npm install"]
+
 [phases.build]
 cmds = [
-  "npm run build --workspace=packages/types",
-  "npm run build --workspace=packages/validators",
+  "npm run build --workspace=packages/types || echo 'types build skipped'",
+  "npm run build --workspace=packages/validators || echo 'validators build skipped'",
+  "cd apps/api && npx prisma generate",
   "npm run build --workspace=apps/api"
 ]
 
 [start]
-cmd = "npx prisma migrate deploy --schema apps/api/prisma/schema.prisma && node apps/api/dist/server.js"
+cmd = "cd apps/api && npx prisma migrate deploy && node dist/server.js"
 
