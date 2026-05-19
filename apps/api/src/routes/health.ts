@@ -7,15 +7,21 @@ const router = express.Router();
 
 // Redis health check
 async function checkRedisHealth() {
+  if (!REDIS_URL) {
+    return { status: 'not_configured', message: 'Redis not configured — using in-memory fallback' };
+  }
   try {
-    // Simple Redis connection check (would need redis client in production)
+    const { createClient } = await import('redis');
+    const client = createClient({ url: REDIS_URL });
+    await client.connect();
+    await client.ping();
+    await client.disconnect();
     return { status: 'healthy', message: 'Redis connection is working' };
   } catch (error) {
     logError('Redis health check failed', error);
-    return { 
-      status: 'unhealthy', 
-      message: 'Redis connection failed',
-      error: error instanceof Error ? error.message : 'Unknown error'
+    return {
+      status: 'warning',
+      message: `Redis connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
     };
   }
 }
@@ -79,13 +85,8 @@ router.get('/health', async (req: Request, res: Response) => {
       Promise.resolve(checkDiskSpace()),
     ]);
 
-    const overallStatus = [
-      dbHealth.status,
-      redisHealth.status,
-      memoryHealth.status,
-      cpuHealth.status,
-      diskHealth.status
-    ].every(status => status === 'healthy') ? 'healthy' : 'degraded';
+    const criticalStatuses = [dbHealth.status];
+    const overallStatus = criticalStatuses.every(s => s === 'healthy') ? 'healthy' : 'degraded';
 
     const responseTime = Date.now() - startTime;
 
@@ -147,14 +148,9 @@ router.get('/health/detailed', async (req: Request, res: Response) => {
       Promise.resolve(checkDiskSpace()),
     ]);
 
-    const overallStatus = [
-      dbHealth.status,
-      redisHealth.status,
-      memoryHealth.status,
-      cpuHealth.status,
-      diskHealth.status
-    ].every(status => status === 'healthy') ? 'healthy' : 'degraded';
-    
+    const criticalStatuses = [dbHealth.status];
+    const overallStatus = criticalStatuses.every(s => s === 'healthy') ? 'healthy' : 'degraded';
+
     const detailedReport = {
       status: overallStatus,
       timestamp: new Date().toISOString(),
