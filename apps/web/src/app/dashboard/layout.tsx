@@ -14,6 +14,7 @@ const NAV_BY_ROLE: Record<string, { name: string; href: string; icon: string }[]
     { name: 'Messaging',   href: '/dashboard/client/message-ab',  icon: '✉️' },
     { name: 'Marketplace', href: '/dashboard/client/marketplace', icon: '🔍' },
     { name: 'Messages',    href: '/dashboard/comms',              icon: '💬' },
+    { name: 'Documents',   href: '/dashboard/documents',          icon: '📁' },
     { name: 'Profile',     href: '/dashboard/client/profile',     icon: '👤' },
   ],
   rep: [
@@ -24,6 +25,7 @@ const NAV_BY_ROLE: Record<string, { name: string; href: string; icon: string }[]
     { name: 'Earnings',     href: '/dashboard/rep/earnings',     icon: '💸' },
     { name: 'Messages',     href: '/dashboard/comms',            icon: '💬' },
     { name: 'Profile',      href: '/dashboard/rep/profile',      icon: '👤' },
+    { name: 'Documents',   href: '/dashboard/documents',        icon: '📁' },
     { name: 'Vault',        href: '/dashboard/vault',            icon: '🔐' },
   ],
   admin: [
@@ -36,6 +38,7 @@ const NAV_BY_ROLE: Record<string, { name: string; href: string; icon: string }[]
     { name: 'Messages',         href: '/dashboard/comms',                   icon: '💬' },
     { name: 'Missions',         href: '/dashboard/missions',                icon: '🎯' },
     { name: 'Agents',           href: '/dashboard/agents',                  icon: '🧑‍💼' },
+    { name: 'Documents',       href: '/dashboard/documents',               icon: '📁' },
     { name: 'Vault',            href: '/dashboard/vault',                   icon: '🔐' },
   ],
   super_admin: [
@@ -48,6 +51,7 @@ const NAV_BY_ROLE: Record<string, { name: string; href: string; icon: string }[]
     { name: 'Messages',         href: '/dashboard/comms',                   icon: '💬' },
     { name: 'Missions',         href: '/dashboard/missions',                icon: '🎯' },
     { name: 'Agents',           href: '/dashboard/agents',                  icon: '🧑‍💼' },
+    { name: 'Documents',       href: '/dashboard/documents',               icon: '📁' },
     { name: 'Vault',            href: '/dashboard/vault',                   icon: '🔐' },
   ],
 };

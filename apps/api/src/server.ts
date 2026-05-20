@@ -39,6 +39,7 @@ import linkedinHealthRoutes from './routes/linkedin-health';
 import commsRoutes from './routes/comms';
 import gamificationRoutes from './routes/gamification';
 import dailyReportRoutes from './routes/daily-report';
+import documentsRoutes from './routes/documents';
 import { startCronJobs } from './lib/cron';
 
 // Load environment variables
@@ -169,6 +170,7 @@ apiRouter.use('/linkedin-health', authMiddleware, linkedinHealthRoutes);
 apiRouter.use('/comms', authMiddleware, commsRoutes);
 apiRouter.use('/gamification', authMiddleware, gamificationRoutes);
 apiRouter.use('/daily-report', authMiddleware, dailyReportRoutes);
+apiRouter.use('/documents', authMiddleware, documentsRoutes);
 
 app.use('/api/v1', apiRouter);
 

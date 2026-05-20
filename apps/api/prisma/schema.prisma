@@ -34,6 +34,7 @@ model User {
   crmActivities   CRMActivity[]
   incidents       Incident[]     @relation()
   qaScoresEvaluated QAScore[]    @relation("EvaluatedBy")
+  documents       Document[]
 
   @@map("users")
 }
@@ -380,12 +381,15 @@ model Lead {
   isDecisionMaker Boolean     @default(false) @map("is_decision_maker")
   notes           String?
   tags            String[]
+  driveDocUrl     String?     @map("drive_doc_url")
+  driveDocId      String?     @map("drive_doc_id")
   createdAt       DateTime    @default(now()) @map("created_at")
   updatedAt       DateTime    @updatedAt @map("updated_at")
 
   // Relations
   assignedTo      User?       @relation(fields: [assignedToId], references: [id])
   activities      CRMActivity[]
+  documents       Document[]
 
   @@map("leads")
 }
@@ -867,4 +871,37 @@ model RepBadge {
 
   @@unique([repId, badgeId])
   @@map("rep_badges")
+}
+
+// ─── Document Vault ───────────────────────────────────────────────────────────────
+model Document {
+  id            String        @id @default(cuid())
+  title         String
+  type          DocumentType  @default(OTHER)
+  entityType    String?       @map("entity_type") // lead | client | campaign | rep
+  entityId      String?       @map("entity_id")
+  driveFileId   String?       @map("drive_file_id")
+  driveUrl      String?       @map("drive_url")
+  mimeType      String?       @map("mime_type")
+  sizeBytes     Int?          @map("size_bytes")
+  notes         String?
+  uploadedById  String        @map("uploaded_by_id")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  uploadedBy    User          @relation(fields: [uploadedById], references: [id])
+  lead          Lead?         @relation(fields: [entityId], references: [id], map: "document_lead_fk")
+
+  @@index([entityType, entityId])
+  @@index([uploadedById])
+  @@map("documents")
+}
+
+enum DocumentType {
+  MEETING_NOTES
+  CONTRACT
+  PROPOSAL
+  ID_DOCUMENT
+  REPORT
+  OTHER
 }
